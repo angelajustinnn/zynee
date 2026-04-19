@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <script th:inline="javascript">
+    window.ZYNEE_IS_GUEST = /*[[${session.isGuest == true}]]*/ false;
+  </script>
+  <script src="/js/guest-access-guard.js"></script>
+  <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zyneé | Insights</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/responsive.css" />
+<style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5);
+      background-size: 400% 400%;
+      animation: dreamyBG 15s ease infinite;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background 0.35s ease;
+    }
+
+    @keyframes dreamyBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 60px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.2rem;
+      z-index: 998;
+      transition: background-color 0.3s ease;
+    }
+
+    .hamburger {
+      font-size: 1.6rem;
+      background: none;
+      border: none;
+      color: #8b5da9;
+      cursor: pointer;
+    }
+
+    .search-bar {
+      width: 200px;
+      transition: width 0.3s ease;
+      padding: 6px 12px;
+      border-radius: 2rem;
+      border: 1px solid #ddd;
+      background-color: rgba(255, 255, 255, 0.85);
+      outline: none;
+    }
+
+    .search-bar:focus {
+      width: 300px;
+      background-color: white;
+    }
+
+    .suggestions {
+      position: fixed;
+      top: calc(60px + 0.1cm);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      background: white;
+      padding: 0.8rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      z-index: 997;
+      display: none;
+    }
+
+    .suggestions.show {
+      display: block;
+    }
+
+    .suggestions div {
+      padding: 0.3rem 0;
+      cursor: pointer;
+    }
+
+    .suggestions div:hover {
+      color: #8b5da9;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      width: 240px;
+      height: calc(100vh - 60px);
+      background-color: #ffffff;
+      box-shadow: 2px 2px 15px rgba(190, 160, 255, 0.2);
+      padding: 1rem;
+      transform: translateX(-100%);
+      transition: transform 0.4s ease, background-color 0.3s ease;
+      z-index: 997;
+      border-top-right-radius: 1rem;
+      border-bottom-right-radius: 1rem;
+      overflow-y: auto;
+    }
+
+    .sidebar.open {
+      transform: translateX(0);
+    }
+
+    .sidebar h4 {
+      font-size: 1.4rem;
+      color: #8b5da9;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar ul li {
+      padding: 0.6rem 0;
+      color: #6b5c7d;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .sidebar ul li:hover {
+      color: #8b5da9;
+    }
+
+    .theme-options {
+      margin-top: 0.5rem;
+      margin-left: 1.2rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.95rem;
+      color: #6b5c7d;
+    }
+
+    .theme-options.active {
+      display: flex;
+    }
+
+    .theme-option {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .theme-option .dot {
+      height: 0.6rem;
+      width: 0.6rem;
+      border-radius: 50%;
+      border: 1px solid #6b5c7d;
+      background-color: transparent;
+    }
+
+    .theme-option.selected .dot {
+      background-color: #8b5da9;
+    }
+
+    #hueSliderContainer {
+      display: none;
+      margin-top: 1rem;
+      margin-left: 1.8rem;
+      height: 140px;
+      position: relative;
+    }
+
+    #hueSlider {
+      writing-mode: bt-lr;
+      appearance: slider-vertical;
+      -webkit-appearance: slider-vertical;
+      width: 20px;
+      height: 100%;
+      transform: rotate(180deg);
+    }
+
+    #mainContent {
+      margin-top: calc(60px + 0.1cm);
+      margin-left: 0;
+      width: 100%;
+      padding: 1.8rem;
+      overflow-x: hidden;
+      transition: margin-left 0.4s ease, width 0.4s ease, margin-top 0.4s ease;
+    }
+
+    #mainContent.pushed-down {
+      margin-top: calc(60px + 2.5rem);
+    }
+
+    #mainContent.shifted {
+      margin-left: 240px;
+      width: calc(100% - 240px);
+    }
+
+    #profileCircle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      color: white;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      border: 2px solid white;
+      cursor: pointer;
+      background-color: #8b5da9;
+    }
+
+    .insights-wrapper {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.2rem;
+    }
+
+    .insight-card {
+      background: rgba(255, 255, 255, 0.88);
+      border-radius: 1.4rem;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+      padding: 1.5rem;
+      min-height: 430px;
+      min-width: 0;
+      overflow: hidden;
+      color: #4b3f60;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    .insight-card h2 {
+      font-size: 1.75rem;
+      margin-bottom: 1.2rem;
+      text-align: center;
+      color: #6b5c7d;
+      font-weight: 500;
+    }
+
+    .insight-subtitle {
+      color: #6c5b84;
+      margin-bottom: 1rem;
+      font-size: 0.98rem;
+    }
+
+    .static-chip {
+      display: inline-block;
+      padding: 0.28rem 0.8rem;
+      border-radius: 999px;
+      background: #f4d9ff;
+      color: #7a4c95;
+      font-size: 0.85rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.7rem;
+      margin-top: 0.8rem;
+    }
+
+    .metric-box {
+      background: #f9f6ff;
+      border: 1px solid #ecdff9;
+      border-radius: 0.9rem;
+      padding: 0.8rem 0.9rem;
+      min-height: 94px;
+    }
+
+    .metric-label {
+      font-size: 0.86rem;
+      color: #6f6286;
+      margin-bottom: 0.35rem;
+    }
+
+    .metric-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #2c253a;
+    }
+
+    .metric-note {
+      font-size: 0.82rem;
+      color: #7b6f92;
+      margin-top: 0.35rem;
+    }
+
+    .timeline {
+      margin-top: 1rem;
+      padding: 0.8rem;
+      border: 1px dashed #d9c8ed;
+      border-radius: 0.9rem;
+      background: #fcfaff;
+    }
+
+    .timeline-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      padding: 0.38rem 0;
+      border-bottom: 1px solid #eee5f8;
+    }
+
+    .timeline-row:last-child {
+      border-bottom: none;
+    }
+
+    .helper-note {
+      margin-top: 1rem;
+      font-size: 0.87rem;
+      color: #756a89;
+      line-height: 1.4;
+    }
+
+    .insight-subtitle,
+    .metric-label,
+    .metric-value,
+    .metric-note,
+    .helper-note,
+    .timeline-row span,
+    .timeline-row strong {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    body.dark-mode {
+      background: #1c1c1e;
+    }
+
+    body.dark-mode .insight-card {
+      background: #2c2c2e;
+      color: #ffffff;
+    }
+
+    body.dark-mode .insight-card h2 {
+      color: #ffffff;
+    }
+
+    body.dark-mode .insight-subtitle,
+    body.dark-mode .metric-label,
+    body.dark-mode .metric-note,
+    body.dark-mode .helper-note {
+      color: #d1d1d8;
+    }
+
+    body.dark-mode .metric-box {
+      background: #373741;
+      border-color: #4b4b57;
+    }
+
+    body.dark-mode .metric-value {
+      color: #ffffff;
+    }
+
+    body.dark-mode .timeline {
+      background: #32323a;
+      border-color: #4f4f5d;
+    }
+
+    body.dark-mode .timeline-row {
+      border-color: #4b4b57;
+    }
+
+    #mainContent.shifted .insights-wrapper {
+      grid-template-columns: 1fr;
+    }
+
+    @media (max-width: 992px) {
+      #mainContent.shifted {
+      margin-left: 0;
+      width: 100%;
+    }
+
+      .insights-wrapper {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search Zyneé..." onfocus="expandSearch()" onblur="shrinkSearch()" oninput="showSuggestions(this.value)" />
+    <a href="/profile.html" class="ms-3" style="text-decoration: none;">
+      <div th:if="${session.profilePhoto == null or session.profilePhoto == ''}"
+           id="profileCircle"
+           th:text="${session.initials}"
+           th:style="|background-color: ${session.profileColor};|">
+      </div>
+
+      <img th:if="${session.profilePhoto != null and session.profilePhoto != ''}"
+           th:src="@{${session.profilePhoto}}"
+           alt="Profile"
+           style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; cursor: pointer;" />
+    </a>
+  </div>
+
+  <div id="sidebar" class="sidebar">
+    <h4>Menu</h4>
+    <ul>
+      <li onclick="window.location.href='/home.html'">🏠 Home</li>
+      <li onclick="window.location.href='/journal.html'">📖 My Journal</li>
+      <li onclick="window.location.href='/stats.html'">📊 Stats</li>
+      <li onclick="window.location.href='/mood.html'">😊 Mood Tracker</li>
+      <li onclick="window.location.href='/quick-checkin.html'">⚡ Quick Check-In</li>
+      <li onclick="window.location.href='/affirmation.html'">🌟 Affirmations</li>
+      <li onclick="window.location.href='/candle.html'">🕯️ Candle</li>
+      <li onclick="window.location.href='/music.html'">🎵 Music</li>
+      <li onclick="window.location.href='/ai-assistant.html'">🤖 Emotional Assistant</li>
+      <li onclick="window.location.href='/future-notes.html'">🫙 Future Notes</li>
+      <li onclick="window.location.href='/insights.html'">🧠 Insights</li>
+      <li onclick="toggleThemeMenu()">🎨 Theme</li>
+      <div id="themeMenu" class="theme-options">
+        <div class="theme-option" onclick="applyTheme('default')"><div class="dot"></div> Default Mode</div>
+        <div class="theme-option" onclick="applyTheme('light')"><div class="dot"></div> Light Mode</div>
+        <div class="theme-option" onclick="applyTheme('dark')"><div class="dot"></div> Dark Mode</div>
+        <div class="theme-option" onclick="applyTheme('custom')"><div class="dot"></div> Custom Mode</div>
+        <div id="hueSliderContainer">
+          <input type="range" id="hueSlider" min="0" max="360" value="270" oninput="updateHue(this.value)">
+        </div>
+      </div>
+      <li onclick="window.location.href='/about.html'">ℹ️ About</li>
+    </ul>
+  </div>
+
+  <div id="suggestionsBox" class="suggestions"></div>
+
+  <div id="mainContent">
+    <div class="insights-wrapper">
+      <section class="insight-card">
+        <span class="static-chip">Live Analysis</span>
+        <h2>🧠 AI Mood Pattern Analysis</h2>
+        <div id="patternSubtitle" class="insight-subtitle">Analyzing your mood, trigger, and journal patterns.</div>
+
+        <div class="metric-grid">
+          <div class="metric-box">
+            <div class="metric-label">Dominant Mood Pattern</div>
+            <div id="dominantPatternValue" class="metric-value">-</div>
+            <div class="metric-note">Repeated mood direction from recent logs.</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Most Likely Trigger</div>
+            <div id="likelyTriggerValue" class="metric-value">-</div>
+            <div class="metric-note">Most frequent trigger signal from logs/check-ins.</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Best-Time Mood Window</div>
+            <div id="bestTimeValue" class="metric-value">-</div>
+            <div class="metric-note">When journal sentiment trends more positive.</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Risk Window</div>
+            <div id="riskWindowValue" class="metric-value">-</div>
+            <div class="metric-note">Time window where dips cluster more often.</div>
+          </div>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-row"><span>Trend Strength</span><strong id="patternTrendStrength">-</strong></div>
+          <div class="timeline-row"><span>Trigger Confidence</span><strong id="patternTriggerConfidence">-</strong></div>
+          <div class="timeline-row"><span>Personalization Score</span><strong id="patternPersonalization">-</strong></div>
+        </div>
+
+      </section>
+
+      <section class="insight-card">
+        <span class="static-chip">Live Analysis</span>
+        <h2>📅 Weekly Wellness Report</h2>
+        <div id="weeklySubtitle" class="insight-subtitle">Weekly summary blended from mood, journals, and quick check-ins.</div>
+
+        <div class="metric-grid">
+          <div class="metric-box">
+            <div class="metric-label">Overall Weekly Check-In</div>
+            <div id="weeklyOverallValue" class="metric-value">-</div>
+            <div class="metric-note">Short summary for this week.</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Energy Trend</div>
+            <div id="weeklyEnergyValue" class="metric-value">-</div>
+            <div class="metric-note">Direction of energy trend from check-ins.</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Stress Snapshot</div>
+            <div id="weeklyStressValue" class="metric-value">-</div>
+            <div class="metric-note">Current stress band from blended signals.</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">Recovery Indicator</div>
+            <div id="weeklyRecoveryValue" class="metric-value">-</div>
+            <div class="metric-note">How strongly your week bounced back.</div>
+          </div>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-row"><span>Wins This Week</span><strong id="weeklyWinsValue">-</strong></div>
+          <div class="timeline-row"><span>Focus Area for Next Week</span><strong id="weeklyFocusValue">-</strong></div>
+          <div class="timeline-row"><span>Report Confidence</span><strong id="weeklyConfidenceValue">-</strong></div>
+        </div>
+
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const suggestionsData = [
+      { label: "My Journal", url: "/journal.html" },
+      { label: "View Journal Entries", url: "/view-entries" },
+      { label: "Statistics", url: "/stats.html" },
+      { label: "Add Mood", url: "/mood.html" },
+  { label: "Quick Check-In", url: "/quick-checkin.html" },
+      { label: "Affirmations", url: "/affirmation.html" },
+      { label: "Virtual Candle", url: "/candle.html" },
+      { label: "Music", url: "/music.html" },
+      { label: "Emotional Assistant", url: "/ai-assistant.html" },
+      { label: "Future Notes", url: "/future-notes.html" },
+      { label: "Insights", url: "/insights.html" },
+      { label: "Profile", url: "/profile.html" },
+      { label: "About", url: "/about.html" }
+    ];
+
+    let selectedTheme = localStorage.getItem("zyneeTheme") || "default";
+    let savedHue = localStorage.getItem("zyneeHue") || "270";
+
+    const sidebar = document.getElementById("sidebar");
+    const main = document.getElementById("mainContent");
+    const themeMenu = document.getElementById("themeMenu");
+
+    function getInsightCards() {
+      return Array.from(document.querySelectorAll(".insight-card"));
+    }
+
+    function toggleSidebar() {
+      if (!sidebar.classList.contains("open")) {
+        closeAllExcept("sidebar");
+        sidebar.classList.add("open");
+        main.classList.add("shifted");
+      } else {
+        sidebar.classList.remove("open");
+        main.classList.remove("shifted");
+        themeMenu.classList.remove("active");
+      }
+    }
+
+    function expandSearch() {
+      closeAllExcept("search");
+      document.getElementById("suggestionsBox").classList.add("show");
+      main.classList.add("pushed-down");
+    }
+
+    function shrinkSearch() {
+      setTimeout(() => {
+        document.getElementById("suggestionsBox").classList.remove("show");
+        main.classList.remove("pushed-down");
+      }, 150);
+    }
+
+    function showSuggestions(value) {
+      const suggestionsBox = document.getElementById("suggestionsBox");
+      const filtered = suggestionsData.filter(item =>
+        item.label.toLowerCase().includes(value.toLowerCase())
+      );
+
+      suggestionsBox.innerHTML = filtered.length
+        ? filtered.map(item => `<div data-url="${item.url}" onclick="goToSuggestion('${item.url}')">${item.label}</div>`).join("")
+        : "<div>No matches found</div>";
+    }
+
+    function goToSuggestion(url) {
+      document.getElementById("suggestionsBox").classList.remove("show");
+      main.classList.remove("pushed-down");
+      window.location.href = url;
+    }
+
+    function toggleThemeMenu() {
+      closeAllExcept("theme");
+      themeMenu.classList.toggle("active");
+    }
+
+    function applyTheme(mode) {
+      selectedTheme = mode;
+      localStorage.setItem("zyneeTheme", mode);
+
+      document.body.classList.remove("default-mode", "light-mode", "dark-mode", "custom-mode");
+      document.body.classList.add(`${mode}-mode`);
+
+      document.querySelectorAll(".theme-option").forEach(opt => {
+        opt.classList.remove("selected");
+        if (opt.textContent.toLowerCase().includes(mode)) {
+          opt.classList.add("selected");
+        }
+      });
+
+      const hueContainer = document.getElementById("hueSliderContainer");
+      const cards = getInsightCards();
+
+      if (mode === "custom") {
+        hueContainer.style.display = "block";
+        updateHue(savedHue);
+      } else {
+        hueContainer.style.display = "none";
+
+        if (mode === "default") {
+          document.body.style.background = "linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5)";
+          sidebar.style.backgroundColor = "#ffffff";
+          cards.forEach(card => {
+            card.style.backgroundColor = "rgba(255, 255, 255, 0.88)";
+            card.style.color = "#4b3f60";
+          });
+        } else if (mode === "light") {
+          document.body.style.background = "#ffffff";
+          sidebar.style.backgroundColor = "#ffffff";
+          cards.forEach(card => {
+            card.style.backgroundColor = "#ffffff";
+            card.style.color = "#333333";
+          });
+        } else if (mode === "dark") {
+          document.body.style.background = "#1c1c1e";
+          sidebar.style.backgroundColor = "#2c2c2e";
+          cards.forEach(card => {
+            card.style.backgroundColor = "#2c2c2e";
+            card.style.color = "#ffffff";
+          });
+        }
+      }
+    }
+
+    function updateHue(hueValue) {
+      if (selectedTheme !== "custom") return;
+      const h = parseInt(hueValue, 10);
+      const cards = getInsightCards();
+      document.body.style.background = `hsl(${h}, 70%, 90%)`;
+      sidebar.style.backgroundColor = `hsl(${h}, 40%, 85%)`;
+      cards.forEach(card => {
+        card.style.backgroundColor = `hsl(${h}, 40%, 92%)`;
+        card.style.color = `hsl(${h}, 20%, 24%)`;
+      });
+      localStorage.setItem("zyneeHue", hueValue);
+    }
+
+    function closeAllExcept(active) {
+      const box = document.getElementById("suggestionsBox");
+
+      if (active !== "sidebar" && active !== "theme") {
+        sidebar.classList.remove("open");
+        main.classList.remove("shifted");
+      }
+
+      if (active !== "search") {
+        box.classList.remove("show");
+        main.classList.remove("pushed-down");
+      }
+
+      if (active !== "theme") {
+        themeMenu.classList.remove("active");
+      }
+    }
+
+    function setText(id, value) {
+      const element = document.getElementById(id);
+      if (!element) return;
+      element.textContent = value == null || value === "" ? "-" : String(value);
+    }
+
+    async function loadInsightsSummary() {
+      const resetInsightValues = () => {
+        const ids = [
+          "dominantPatternValue",
+          "likelyTriggerValue",
+          "bestTimeValue",
+          "riskWindowValue",
+          "patternTrendStrength",
+          "patternTriggerConfidence",
+          "patternPersonalization",
+          "weeklyOverallValue",
+          "weeklyEnergyValue",
+          "weeklyStressValue",
+          "weeklyRecoveryValue",
+          "weeklyWinsValue",
+          "weeklyFocusValue",
+          "weeklyConfidenceValue"
+        ];
+        ids.forEach((id) => setText(id, "-"));
+      };
+
+      const localConsentState = localStorage.getItem("zynee_data_analysis_consent");
+      if (localConsentState === "declined") {
+        resetInsightValues();
+        setText("patternSubtitle", "Analysis is disabled.");
+        setText("weeklySubtitle", "Enable data analysis in Profile > Other Settings.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/insights/summary?t=${Date.now()}`, { cache: "no-store" });
+        const data = await response.json();
+        if (data && data.analysisDisabled) {
+          localStorage.setItem("zynee_data_analysis_consent", "declined");
+          resetInsightValues();
+          setText("patternSubtitle", data.message || "Analysis is disabled.");
+          setText("weeklySubtitle", "Enable data analysis in Profile > Other Settings.");
+          return;
+        }
+
+        if (!response.ok || data.error) {
+          resetInsightValues();
+          setText("patternSubtitle", data.error || "Unable to load insights right now.");
+          setText("weeklySubtitle", "Please try again in a moment.");
+          return;
+        }
+
+        localStorage.setItem("zynee_data_analysis_consent", "allowed");
+
+        const pattern = data.moodPattern || {};
+        const weekly = data.weeklyWellness || {};
+        setText("dominantPatternValue", pattern.dominantMoodPattern);
+        setText("likelyTriggerValue", pattern.mostLikelyTrigger);
+        setText("bestTimeValue", pattern.bestTimeMoodWindow);
+        setText("riskWindowValue", pattern.riskWindow);
+        setText("patternTrendStrength", pattern.trendStrength);
+        setText("patternTriggerConfidence", pattern.triggerConfidence);
+        setText("patternPersonalization", pattern.personalizationScore);
+
+        setText("weeklyOverallValue", weekly.overallWeeklyCheckin);
+        setText("weeklyEnergyValue", weekly.energyTrend);
+        setText("weeklyStressValue", weekly.stressSnapshot);
+        setText("weeklyRecoveryValue", weekly.recoveryIndicator);
+        setText("weeklyWinsValue", weekly.winsThisWeek);
+        setText("weeklyFocusValue", weekly.focusAreaForNextWeek);
+        setText("weeklyConfidenceValue", weekly.reportConfidence);
+      } catch (error) {
+        resetInsightValues();
+        setText("patternSubtitle", "Insight service unavailable.");
+        setText("weeklySubtitle", "Insight service unavailable.");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      applyTheme(selectedTheme);
+      document.getElementById("hueSlider").value = savedHue;
+      if (selectedTheme === "custom") {
+        document.getElementById("hueSliderContainer").style.display = "block";
+        updateHue(savedHue);
+      }
+      loadInsightsSummary();
+
+      document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) {
+          loadInsightsSummary();
+        }
+      });
+    });
+  </script>
+
+  <script id="sessionBackGuard">
+  (function () {
+    function needsRefresh() {
+      var nav = (performance.getEntriesByType && performance.getEntriesByType("navigation")) || [];
+      return nav.length > 0 && nav[0].type === "back_forward";
+    }
+
+    window.addEventListener("pageshow", function (event) {
+      if (event.persisted || needsRefresh()) {
+        window.location.reload();
+      }
+    });
+  })();
+  </script>
+
+  <div id="floatingCompanionConfig"
+       th:if="${session.email != null}"
+       th:attr="data-session-key=${session.assistantSessionKey},data-user-id=${session.userId},data-user-name=${session.name},data-country-code=${session.countryCode}"
+       style="display:none;"></div>
+  <script src="/js/future-note-notifier.js"></script>
+  <script src="/js/floating-companion.js"></script>
+</body>
+</html>

@@ -1,0 +1,1880 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <script th:inline="javascript">
+    window.ZYNEE_IS_GUEST = /*[[${session.isGuest == true}]]*/ false;
+  </script>
+  <script src="/js/guest-access-guard.js"></script>
+  <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zyneé | Quick Check-In</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/responsive.css" />
+<style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5);
+      background-size: 400% 400%;
+      animation: dreamyBG 15s ease infinite;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background 0.35s ease;
+    }
+
+    @keyframes dreamyBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 60px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.2rem;
+      z-index: 998;
+      transition: background-color 0.3s ease;
+    }
+
+    .hamburger {
+      font-size: 1.6rem;
+      background: none;
+      border: none;
+      color: #8b5da9;
+      cursor: pointer;
+    }
+
+    .search-bar {
+      width: 200px;
+      transition: width 0.3s ease;
+      padding: 6px 12px;
+      border-radius: 2rem;
+      border: 1px solid #ddd;
+      background-color: rgba(255, 255, 255, 0.85);
+      outline: none;
+    }
+
+    .search-bar:focus {
+      width: 300px;
+      background-color: white;
+    }
+
+    .suggestions {
+      position: fixed;
+      top: calc(60px + 0.1cm);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      background: white;
+      padding: 0.8rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      z-index: 997;
+      display: none;
+    }
+
+    .suggestions.show { display: block; }
+
+    .suggestions div {
+      padding: 0.3rem 0;
+      cursor: pointer;
+    }
+
+    .suggestions div:hover { color: #8b5da9; }
+
+    .sidebar {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      width: 240px;
+      height: calc(100vh - 60px);
+      background-color: #ffffff;
+      box-shadow: 2px 2px 15px rgba(190, 160, 255, 0.2);
+      padding: 1rem;
+      transform: translateX(-100%);
+      transition: transform 0.4s ease, background-color 0.3s ease;
+      z-index: 997;
+      border-top-right-radius: 1rem;
+      border-bottom-right-radius: 1rem;
+      overflow-y: auto;
+    }
+
+    .sidebar.open {
+      transform: translateX(0);
+    }
+
+    .sidebar h4 {
+      font-size: 1.4rem;
+      color: #8b5da9;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .sidebar ul { list-style: none; padding: 0; }
+
+    .sidebar ul li {
+      padding: 0.6rem 0;
+      color: #6b5c7d;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .sidebar ul li:hover { color: #8b5da9; }
+
+    .theme-options {
+      margin-top: 0.5rem;
+      margin-left: 1.2rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.95rem;
+      color: #6b5c7d;
+    }
+
+    .theme-options.active { display: flex; }
+
+    .theme-option {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .theme-option .dot {
+      height: 0.6rem;
+      width: 0.6rem;
+      border-radius: 50%;
+      border: 1px solid #6b5c7d;
+      background-color: transparent;
+    }
+
+    .theme-option.selected .dot { background-color: #8b5da9; }
+
+    #hueSliderContainer {
+      display: none;
+      margin-top: 1rem;
+      margin-left: 1.8rem;
+      height: 140px;
+      position: relative;
+    }
+
+    #hueSlider {
+      writing-mode: bt-lr;
+      appearance: slider-vertical;
+      -webkit-appearance: slider-vertical;
+      width: 20px;
+      height: 100%;
+      transform: rotate(180deg);
+    }
+
+    #mainContent {
+      margin-top: calc(60px + 0.1cm);
+      margin-left: 0;
+      width: 100%;
+      padding: 1.8rem;
+      overflow-x: hidden;
+      transition: margin-left 0.4s ease, width 0.4s ease, margin-top 0.4s ease;
+    }
+
+    #mainContent.pushed-down { margin-top: calc(60px + 2.5rem); }
+
+    #mainContent.shifted {
+      margin-left: 240px;
+      width: calc(100% - 240px);
+    }
+
+    #profileCircle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      color: white;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      border: 2px solid white;
+      cursor: pointer;
+      background-color: #8b5da9;
+    }
+
+    .checkin-wrapper {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.2rem;
+    }
+
+    .checkin-card,
+    .summary-card {
+      background: rgba(255, 255, 255, 0.88);
+      border-radius: 1.4rem;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+      padding: 1.4rem;
+      min-width: 0;
+      transition: background-color 0.25s ease, color 0.25s ease;
+      color: #4b3f60;
+    }
+
+    .checkin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .checkin-title {
+      font-size: 1.75rem;
+      margin: 0;
+      font-weight: 500;
+      color: #6b5c7d;
+      line-height: 1.25;
+    }
+
+    .checkin-subtitle {
+      margin-bottom: 1rem;
+      color: #6c5b84;
+      font-size: 0.98rem;
+    }
+
+    .progress-pill {
+      background: #f4d9ff;
+      color: #7a4c95;
+      border-radius: 999px;
+      font-size: 0.86rem;
+      padding: 0.35rem 0.9rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .question-box {
+      border: 1px solid #ecdff9;
+      border-radius: 1rem;
+      background: #fbf8ff;
+      padding: 1rem;
+      min-height: 280px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 0.9rem;
+    }
+
+    .question-label {
+      font-size: 0.84rem;
+      color: #7a6f8f;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .question-text {
+      font-size: 1.2rem;
+      color: #2f2740;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    .choices {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.7rem;
+    }
+
+    .choices.tags-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.6rem;
+    }
+
+    @media (min-width: 980px) {
+      .choices.tags-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .choices.tags-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .choice-btn {
+      border: 1px solid #dbc8f4;
+      background: #ffffff;
+      border-radius: 0.9rem;
+      padding: 0.68rem 0.9rem;
+      text-align: left;
+      color: #4a3c63;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .choice-btn:hover {
+      border-color: #b992e8;
+      transform: translateY(-1px);
+    }
+
+    .choice-btn.selected {
+      background: #f4d9ff;
+      border-color: #a878db;
+      color: #5c3d91;
+      box-shadow: 0 6px 18px rgba(165, 123, 216, 0.25);
+    }
+
+    .short-answer {
+      border: 1px solid #dbc8f4;
+      border-radius: 0.9rem;
+      padding: 0.75rem 0.9rem;
+      font-size: 1rem;
+      outline: none;
+      color: #33284a;
+    }
+
+    .short-answer:focus {
+      border-color: #a878db;
+      box-shadow: 0 0 0 3px rgba(168, 120, 219, 0.15);
+    }
+
+    .input-helper {
+      font-size: 0.83rem;
+      color: #7a6f8f;
+      line-height: 1.35;
+    }
+
+    .nav-row {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 0.58rem 1.2rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .action-btn:hover { transform: translateY(-1px); }
+
+    .action-secondary {
+      background: #efe8f9;
+      color: #5f4d79;
+    }
+
+    .action-primary {
+      background: #d8bff5;
+      color: #4b2f72;
+      margin-left: auto;
+    }
+
+    .action-primary:disabled,
+    .action-secondary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status-text {
+      min-height: 1.2rem;
+      margin-top: 0.8rem;
+      font-size: 0.92rem;
+      color: #6f6287;
+    }
+
+    .status-text.error { color: #b15f73; }
+    .status-text.success { color: #4f8f69; }
+
+    .post-submit-panel {
+      display: none;
+      flex-direction: column;
+      gap: 0.8rem;
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      border: 1px solid #d8c4f1;
+      background: #fbf6ff;
+    }
+
+    .post-submit-panel.active {
+      display: flex;
+    }
+
+    .post-submit-message {
+      color: #4b3f60;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .summary-card h3 {
+      margin: 0;
+      font-size: 1.75rem;
+      font-weight: 500;
+      color: #6b5c7d;
+    }
+
+    .summary-note {
+      margin: 0.5rem 0 1rem;
+      color: #6f6384;
+      font-size: 0.9rem;
+    }
+
+    .summary-metric {
+      border: 1px dashed #d8c4f1;
+      border-radius: 1rem;
+      padding: 0.9rem;
+      margin-bottom: 0.8rem;
+      background: #fcfaff;
+    }
+
+    .metric-title {
+      font-size: 0.83rem;
+      color: #7c7093;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .metric-value {
+      margin-top: 0.25rem;
+      font-size: 1.2rem;
+      color: #2f2740;
+      font-weight: 700;
+    }
+
+    .latest-list {
+      margin: 0;
+      padding-left: 0.35rem;
+      list-style-position: inside;
+      max-height: 260px;
+      overflow: auto;
+      color: #5a4d72;
+    }
+
+    .latest-list li { margin-bottom: 0.5rem; }
+
+    body.dark-mode { background: #1c1c1e; }
+
+    body.dark-mode .checkin-card,
+    body.dark-mode .summary-card {
+      background: #2c2c2e;
+      color: #ffffff;
+    }
+
+    body.dark-mode .checkin-subtitle,
+    body.dark-mode .summary-note,
+    body.dark-mode .question-label,
+    body.dark-mode .input-helper,
+    body.dark-mode .post-submit-message,
+    body.dark-mode .status-text,
+    body.dark-mode .metric-title,
+    body.dark-mode .latest-list {
+      color: #d1d1d8;
+    }
+
+    body.dark-mode .question-box,
+    body.dark-mode .post-submit-panel,
+    body.dark-mode .summary-metric {
+      background: #32323a;
+      border-color: #4f4f5d;
+    }
+
+    body.dark-mode .question-text,
+    body.dark-mode .metric-value {
+      color: #ffffff;
+    }
+
+    body.dark-mode .choice-btn {
+      background: #373741;
+      border-color: #545461;
+      color: #ececf2;
+    }
+
+    body.dark-mode .choice-btn.selected {
+      background: #695285;
+      border-color: #8a70aa;
+      color: #ffffff;
+    }
+
+    body.dark-mode .short-answer {
+      background: #373741;
+      border-color: #545461;
+      color: #ffffff;
+    }
+
+    body.dark-mode .action-secondary {
+      background: #40404a;
+      color: #ececf2;
+    }
+
+    body.dark-mode .action-primary {
+      background: #755997;
+      color: #ffffff;
+    }
+
+    #mainContent.shifted .checkin-wrapper {
+      grid-template-columns: 1fr;
+    }
+
+    @media (max-width: 992px) {
+      #mainContent.shifted {
+      margin-left: 0;
+      width: 100%;
+    }
+      .checkin-wrapper {
+        grid-template-columns: 1fr;
+      }
+      .checkin-title { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search Zyneé..." onfocus="expandSearch()" onblur="shrinkSearch()" oninput="showSuggestions(this.value)" />
+    <a href="/profile.html" class="ms-3" style="text-decoration: none;">
+      <div th:if="${session.profilePhoto == null or session.profilePhoto == ''}"
+           id="profileCircle"
+           th:text="${session.initials}"
+           th:style="|background-color: ${session.profileColor};|">
+      </div>
+      <img th:if="${session.profilePhoto != null and session.profilePhoto != ''}"
+           th:src="@{${session.profilePhoto}}"
+           alt="Profile"
+           style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; cursor: pointer;" />
+    </a>
+  </div>
+
+  <div id="sidebar" class="sidebar">
+    <h4>Menu</h4>
+    <ul>
+      <li onclick="window.location.href='/home.html'">🏠 Home</li>
+      <li onclick="window.location.href='/journal.html'">📖 My Journal</li>
+      <li onclick="window.location.href='/stats.html'">📊 Stats</li>
+      <li onclick="window.location.href='/mood.html'">😊 Mood Tracker</li>
+      <li onclick="window.location.href='/quick-checkin.html'">⚡ Quick Check-In</li>
+      <li onclick="window.location.href='/affirmation.html'">🌟 Affirmations</li>
+      <li onclick="window.location.href='/candle.html'">🕯️ Candle</li>
+      <li onclick="window.location.href='/music.html'">🎵 Music</li>
+      <li onclick="window.location.href='/ai-assistant.html'">🤖 Emotional Assistant</li>
+      <li onclick="window.location.href='/future-notes.html'">🫙 Future Notes</li>
+      <li onclick="window.location.href='/insights.html'">🧠 Insights</li>
+      <li onclick="toggleThemeMenu()">🎨 Theme</li>
+      <div id="themeMenu" class="theme-options">
+        <div class="theme-option" onclick="applyTheme('default')"><div class="dot"></div> Default Mode</div>
+        <div class="theme-option" onclick="applyTheme('light')"><div class="dot"></div> Light Mode</div>
+        <div class="theme-option" onclick="applyTheme('dark')"><div class="dot"></div> Dark Mode</div>
+        <div class="theme-option" onclick="applyTheme('custom')"><div class="dot"></div> Custom Mode</div>
+        <div id="hueSliderContainer">
+          <input type="range" id="hueSlider" min="0" max="360" value="270" oninput="updateHue(this.value)">
+        </div>
+      </div>
+      <li onclick="window.location.href='/about.html'">ℹ️ About</li>
+    </ul>
+  </div>
+
+  <div id="suggestionsBox" class="suggestions"></div>
+
+  <div id="mainContent">
+    <div class="checkin-wrapper">
+      <section class="checkin-card">
+        <div class="checkin-header">
+          <h3 class="checkin-title">⚡ Quick Check-In</h3>
+          <span class="progress-pill" id="progressPill">Question 1 / 10</span>
+        </div>
+        <div class="checkin-subtitle">A stronger daily pulse check for reports, trends, and forecasting signals.</div>
+
+        <div class="question-box">
+          <div class="question-label" id="questionType">Single Choice</div>
+          <div class="question-text" id="questionText"></div>
+          <div id="questionInputArea"></div>
+        </div>
+
+        <div class="nav-row">
+          <button class="action-btn action-secondary" id="backBtn" type="button">Back</button>
+          <button class="action-btn action-primary" id="nextBtn" type="button">Next</button>
+        </div>
+
+        <div id="postSubmitPanel" class="post-submit-panel">
+          <div class="post-submit-message">Your response has been recorded.</div>
+          <button class="action-btn action-primary" id="submitAnotherBtn" type="button">Submit another</button>
+        </div>
+
+        <div id="statusText" class="status-text"></div>
+      </section>
+
+      <aside class="summary-card">
+        <h3>Current Snapshot</h3>
+        <p id="summaryNote" class="summary-note">Saved to your account database and ready for weekly insight logic.</p>
+
+        <div class="summary-metric">
+          <div class="metric-title">Estimated Check-In Mood</div>
+          <div class="metric-value" id="moodEstimate">-</div>
+        </div>
+
+        <div class="summary-metric">
+          <div class="metric-title">Response Completion</div>
+          <div class="metric-value" id="confidenceValue">0%</div>
+        </div>
+
+        <div class="summary-metric">
+          <div class="metric-title">Latest Saved At</div>
+          <div class="metric-value" id="lastSavedValue">Not saved yet</div>
+        </div>
+
+        <div class="metric-title" style="margin-bottom:0.4rem;">Last Saved Answers</div>
+        <ol id="latestList" class="latest-list">
+          <li>No saved check-in yet.</li>
+        </ol>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const suggestionsData = [
+      { label: "My Journal", url: "/journal.html" },
+      { label: "View Journal Entries", url: "/view-entries" },
+      { label: "Statistics", url: "/stats.html" },
+      { label: "Add Mood", url: "/mood.html" },
+      { label: "Quick Check-In", url: "/quick-checkin.html" },
+      { label: "Affirmations", url: "/affirmation.html" },
+      { label: "Virtual Candle", url: "/candle.html" },
+      { label: "Music", url: "/music.html" },
+      { label: "Emotional Assistant", url: "/ai-assistant.html" },
+      { label: "Future Notes", url: "/future-notes.html" },
+      { label: "Insights", url: "/insights.html" },
+      { label: "Profile", url: "/profile.html" },
+      { label: "About", url: "/about.html" }
+    ];
+
+    const QUESTIONNAIRE_VERSION = "v2.0-ml-ready";
+    const CHECKIN_API_BASE = "/api/quick-checkins";
+
+    const questions = [
+      {
+        key: "overall_mood",
+        type: "choice",
+        label: "Quick Check-In Question",
+        prompt: "How are you feeling overall right now?",
+        choices: [
+          { text: "Very low", value: 1 },
+          { text: "Low", value: 2 },
+          { text: "Neutral", value: 3 },
+          { text: "Good", value: 4 },
+          { text: "Very good", value: 5 }
+        ]
+      },
+      {
+        key: "energy",
+        type: "choice",
+        label: "Quick Check-In Question",
+        prompt: "How is your energy level today?",
+        choices: [
+          { text: "Exhausted", value: 1 },
+          { text: "Low", value: 2 },
+          { text: "Okay", value: 3 },
+          { text: "Active", value: 4 },
+          { text: "Very energetic", value: 5 }
+        ]
+      },
+      {
+        key: "sleep_quality",
+        type: "choice",
+        label: "Quick Check-In Question",
+        prompt: "How well did you sleep last night?",
+        choices: [
+          { text: "Very poor", value: 1 },
+          { text: "Poor", value: 2 },
+          { text: "Average", value: 3 },
+          { text: "Good", value: 4 },
+          { text: "Very good", value: 5 }
+        ]
+      },
+      {
+        key: "stress_load",
+        type: "choice",
+        label: "Quick Check-In Question",
+        prompt: "How stressed do you feel right now?",
+        choices: [
+          { text: "Extremely stressed", value: 1 },
+          { text: "Stressed", value: 2 },
+          { text: "Moderate", value: 3 },
+          { text: "Slightly stressed", value: 4 },
+          { text: "Not stressed", value: 5 }
+        ]
+      },
+      {
+        key: "motivation",
+        type: "choice",
+        label: "Quick Check-In Question",
+        prompt: "How motivated are you to do your tasks today?",
+        choices: [
+          { text: "No motivation", value: 1 },
+          { text: "Low", value: 2 },
+          { text: "Average", value: 3 },
+          { text: "High", value: 4 },
+          { text: "Very high", value: 5 }
+        ]
+      },
+      {
+        key: "social_connection",
+        type: "choice",
+        label: "Quick Check-In Question",
+        prompt: "How connected do you feel to people today?",
+        choices: [
+          { text: "Very disconnected", value: 1 },
+          { text: "Slightly disconnected", value: 2 },
+          { text: "Neutral", value: 3 },
+          { text: "Connected", value: 4 },
+          { text: "Very connected", value: 5 }
+        ]
+      },
+      {
+        key: "anxiety_load",
+        type: "choice",
+        label: "Quick Check-In Question",
+        prompt: "How busy is your mind right now?",
+        choices: [
+          { text: "Overwhelmed", value: 1 },
+          { text: "Overthinking", value: 2 },
+          { text: "Slightly busy", value: 3 },
+          { text: "Calm", value: 4 },
+          { text: "Very calm", value: 5 }
+        ]
+      },
+      {
+        key: "support_need",
+        type: "choice",
+        label: "Quick Check-In Question",
+        prompt: "How much control do you feel over your day today?",
+        choices: [
+          { text: "No control", value: 1 },
+          { text: "Little control", value: 2 },
+          { text: "Some control", value: 3 },
+          { text: "Mostly in control", value: 4 },
+          { text: "Fully in control", value: 5 }
+        ]
+      },
+      {
+        key: "hope_level",
+        type: "choice",
+        label: "Quick Check-In Question",
+        prompt: "How do you think the rest of your day will go?",
+        choices: [
+          { text: "Very bad", value: 1 },
+          { text: "Bad", value: 2 },
+          { text: "Neutral", value: 3 },
+          { text: "Good", value: 4 },
+          { text: "Very good", value: 5 }
+        ]
+      },
+      {
+        key: "primary_trigger",
+        type: "choice",
+        label: "Quick Check-In Question",
+        prompt: "What do you need the most right now?",
+        choices: [
+          { text: "Rest / Break", value: 3 },
+          { text: "Motivation", value: 3 },
+          { text: "Support / Someone to talk to", value: 3 },
+          { text: "Focus / Clarity", value: 3 },
+          { text: "Distraction / Relaxation", value: 3 }
+        ]
+      },
+      {
+        key: "mood_trigger_tags",
+        type: "tags",
+        label: "🏷️ Trigger Tags",
+        prompt: "Select all trigger tags that match right now.",
+        tagChoices: [
+          { key: "work_studies", text: "Work / Studies" },
+          { key: "health_sleep", text: "Health / Sleep" },
+          { key: "relationships", text: "Relationships" },
+          { key: "family", text: "Family" },
+          { key: "friends", text: "Friends" },
+          { key: "money_future", text: "Money / Future" },
+          { key: "self_esteem", text: "Self-esteem" },
+          { key: "social_media", text: "Social media" },
+          { key: "loneliness", text: "Loneliness" },
+          { key: "overthinking", text: "Overthinking" },
+          { key: "burnout", text: "Burnout" },
+          { key: "routine_daily_life", text: "Routine / Daily life" },
+          { key: "achievement", text: "Achievement" },
+          { key: "personal_growth", text: "Personal growth" },
+          { key: "good_news", text: "Good news" },
+          { key: "social_connection", text: "Social connection" },
+          { key: "relaxation", text: "Relaxation" },
+          { key: "hobby_fun", text: "Hobby / Fun" },
+          { key: "exercise_fitness", text: "Exercise / Fitness" },
+          { key: "environment", text: "Environment (noise, surroundings)" },
+          { key: "time_pressure", text: "Time pressure" },
+          { key: "comparison_with_others", text: "Comparison with others" },
+          {
+            key: "custom_other",
+            text: "➕ Other",
+            custom: true,
+            customPrompt: "Other (max 5 words)",
+            customPlaceholder: "Up to 5 words",
+            customMaxWords: 5
+          }
+        ]
+      }
+    ];
+
+    const TOTAL_QUESTION_COUNT = questions.filter(question => question.type !== "tags").length;
+    const COUNTED_QUESTION_KEYS = questions
+      .filter(question => question.type !== "tags")
+      .map(question => question.key);
+    const REQUIRED_QUESTION_KEYS = questions.map(question => question.key);
+    const TOTAL_REQUIRED_COUNT = REQUIRED_QUESTION_KEYS.length;
+
+    let selectedTheme = localStorage.getItem("zyneeTheme") || "default";
+    let savedHue = localStorage.getItem("zyneeHue") || "270";
+    let currentIndex = 0;
+    let isSaving = false;
+    let hasSubmittedInSession = false;
+    const answers = {};
+    const questionByKey = Object.fromEntries(questions.map(question => [question.key, question]));
+
+    const sidebar = document.getElementById("sidebar");
+    const main = document.getElementById("mainContent");
+    const themeMenu = document.getElementById("themeMenu");
+
+    const questionTypeEl = document.getElementById("questionType");
+    const questionTextEl = document.getElementById("questionText");
+    const questionInputArea = document.getElementById("questionInputArea");
+    const progressPill = document.getElementById("progressPill");
+    const statusText = document.getElementById("statusText");
+    const questionBox = document.querySelector(".question-box");
+    const navRow = document.querySelector(".nav-row");
+    const postSubmitPanel = document.getElementById("postSubmitPanel");
+    const submitAnotherBtn = document.getElementById("submitAnotherBtn");
+    const backBtn = document.getElementById("backBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const moodEstimate = document.getElementById("moodEstimate");
+    const confidenceValue = document.getElementById("confidenceValue");
+    const lastSavedValue = document.getElementById("lastSavedValue");
+    const latestList = document.getElementById("latestList");
+    const summaryNote = document.getElementById("summaryNote");
+    const DEFAULT_SUMMARY_NOTE = "Saved to your account database and ready for weekly insight logic.";
+    let analysisConsentEnabled = true;
+
+    function getCards() {
+      return [document.querySelector(".checkin-card"), document.querySelector(".summary-card")].filter(Boolean);
+    }
+
+    function toggleSidebar() {
+      if (!sidebar.classList.contains("open")) {
+        closeAllExcept("sidebar");
+        sidebar.classList.add("open");
+        main.classList.add("shifted");
+      } else {
+        sidebar.classList.remove("open");
+        main.classList.remove("shifted");
+        themeMenu.classList.remove("active");
+      }
+    }
+
+    function expandSearch() {
+      closeAllExcept("search");
+      document.getElementById("suggestionsBox").classList.add("show");
+      main.classList.add("pushed-down");
+    }
+
+    function shrinkSearch() {
+      setTimeout(() => {
+        document.getElementById("suggestionsBox").classList.remove("show");
+        main.classList.remove("pushed-down");
+      }, 150);
+    }
+
+    function showSuggestions(value) {
+      const suggestionsBox = document.getElementById("suggestionsBox");
+      const filtered = suggestionsData.filter(item =>
+        item.label.toLowerCase().includes(value.toLowerCase())
+      );
+
+      suggestionsBox.innerHTML = filtered.length
+        ? filtered.map(item => `<div data-url="${item.url}" onclick="goToSuggestion('${item.url}')">${item.label}</div>`).join("")
+        : "<div>No matches found</div>";
+    }
+
+    function goToSuggestion(url) {
+      document.getElementById("suggestionsBox").classList.remove("show");
+      main.classList.remove("pushed-down");
+      window.location.href = url;
+    }
+
+    function toggleThemeMenu() {
+      closeAllExcept("theme");
+      themeMenu.classList.toggle("active");
+    }
+
+    function applyTheme(mode) {
+      selectedTheme = mode;
+      localStorage.setItem("zyneeTheme", mode);
+
+      document.body.classList.remove("default-mode", "light-mode", "dark-mode", "custom-mode");
+      document.body.classList.add(`${mode}-mode`);
+
+      document.querySelectorAll(".theme-option").forEach(opt => {
+        opt.classList.remove("selected");
+        if (opt.textContent.toLowerCase().includes(mode)) {
+          opt.classList.add("selected");
+        }
+      });
+
+      const hueContainer = document.getElementById("hueSliderContainer");
+      const cards = getCards();
+
+      if (mode === "custom") {
+        hueContainer.style.display = "block";
+        updateHue(savedHue);
+      } else {
+        hueContainer.style.display = "none";
+
+        if (mode === "default") {
+          document.body.style.background = "linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5)";
+          sidebar.style.backgroundColor = "#ffffff";
+          cards.forEach(card => {
+            card.style.backgroundColor = "rgba(255, 255, 255, 0.88)";
+            card.style.color = "#4b3f60";
+          });
+        } else if (mode === "light") {
+          document.body.style.background = "#ffffff";
+          sidebar.style.backgroundColor = "#ffffff";
+          cards.forEach(card => {
+            card.style.backgroundColor = "#ffffff";
+            card.style.color = "#333333";
+          });
+        } else if (mode === "dark") {
+          document.body.style.background = "#1c1c1e";
+          sidebar.style.backgroundColor = "#2c2c2e";
+          cards.forEach(card => {
+            card.style.backgroundColor = "#2c2c2e";
+            card.style.color = "#ffffff";
+          });
+        }
+      }
+    }
+
+    function updateHue(hueValue) {
+      if (selectedTheme !== "custom") return;
+      const h = parseInt(hueValue, 10);
+      const cards = getCards();
+      document.body.style.background = `hsl(${h}, 70%, 90%)`;
+      sidebar.style.backgroundColor = `hsl(${h}, 40%, 85%)`;
+      cards.forEach(card => {
+        card.style.backgroundColor = `hsl(${h}, 40%, 92%)`;
+        card.style.color = `hsl(${h}, 20%, 24%)`;
+      });
+      localStorage.setItem("zyneeHue", hueValue);
+    }
+
+    function closeAllExcept(active) {
+      const box = document.getElementById("suggestionsBox");
+
+      if (active !== "sidebar" && active !== "theme") {
+        sidebar.classList.remove("open");
+        main.classList.remove("shifted");
+      }
+
+      if (active !== "search") {
+        box.classList.remove("show");
+        main.classList.remove("pushed-down");
+      }
+
+      if (active !== "theme") {
+        themeMenu.classList.remove("active");
+      }
+    }
+
+    function getNumericAnswers() {
+      return Object.values(answers)
+        .filter(v => v && typeof v === "object" && Number.isFinite(v.score))
+        .map(v => v.score);
+    }
+
+    function countWords(value) {
+      if (typeof value !== "string") return 0;
+      const trimmed = value.trim();
+      if (!trimmed) return 0;
+      return trimmed.split(/\s+/).length;
+    }
+
+    function clampToWordLimit(value, maxWords) {
+      if (typeof value !== "string") return "";
+      const trimmed = value.trim();
+      if (!trimmed) return "";
+      return trimmed.split(/\s+/).slice(0, maxWords).join(" ");
+    }
+
+    function getTagChoices(question) {
+      if (!question || !Array.isArray(question.tagChoices)) return [];
+      return question.tagChoices
+        .map((choice, index) => {
+          if (choice && typeof choice === "object") {
+            const key = typeof choice.key === "string" && choice.key.trim()
+              ? choice.key.trim()
+              : `tag_${index}`;
+            const text = typeof choice.text === "string" && choice.text.trim()
+              ? choice.text.trim()
+              : key;
+            return {
+              ...choice,
+              key,
+              text,
+              custom: choice.custom === true
+            };
+          }
+
+          const text = String(choice ?? "").trim();
+          if (!text) return null;
+          const key = text.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || `tag_${index}`;
+          return { key, text, custom: false };
+        })
+        .filter(Boolean);
+    }
+
+    function getCustomTagChoice(question) {
+      return getTagChoices(question).find(choice => choice.custom) || null;
+    }
+
+    function getSelectedTagKeys(question, value) {
+      const tagChoices = getTagChoices(question);
+      const allowedKeys = new Set(tagChoices.map(choice => choice.key));
+      const lowerTextToKey = new Map(tagChoices.map(choice => [choice.text.toLowerCase(), choice.key]));
+      const selected = new Set();
+
+      if (value && typeof value === "object" && Array.isArray(value.selectedTagKeys)) {
+        value.selectedTagKeys.forEach(rawKey => {
+          const key = String(rawKey).trim();
+          if (allowedKeys.has(key)) {
+            selected.add(key);
+          }
+        });
+      }
+
+      if (value && typeof value === "object" && Array.isArray(value.tags)) {
+        value.tags.forEach(rawTag => {
+          const tagText = String(rawTag).trim();
+          if (!tagText) return;
+          const lowered = tagText.toLowerCase();
+          if (lowered.startsWith("other:")) {
+            const customChoice = getCustomTagChoice(question);
+            if (customChoice) {
+              selected.add(customChoice.key);
+            }
+            return;
+          }
+          const foundKey = lowerTextToKey.get(lowered);
+          if (foundKey) {
+            selected.add(foundKey);
+          }
+        });
+      }
+
+      if (value && typeof value === "object" && value.hasCustomTag === true) {
+        const customChoice = getCustomTagChoice(question);
+        if (customChoice) {
+          selected.add(customChoice.key);
+        }
+      }
+
+      if (value && typeof value === "object" && typeof value.customTagText === "string" && value.customTagText.trim()) {
+        const customChoice = getCustomTagChoice(question);
+        if (customChoice) {
+          selected.add(customChoice.key);
+        }
+      }
+
+      return Array.from(selected);
+    }
+
+    function buildTagsAnswer(question, selectedTagKeys, rawCustomTagText) {
+      const tagChoices = getTagChoices(question);
+      const choiceByKey = new Map(tagChoices.map(choice => [choice.key, choice]));
+      const normalizedKeys = Array.from(
+        new Set(
+          (Array.isArray(selectedTagKeys) ? selectedTagKeys : [])
+            .map(key => String(key).trim())
+            .filter(key => choiceByKey.has(key))
+        )
+      );
+
+      const customChoice = getCustomTagChoice(question);
+      const customMaxWords = customChoice && Number.isFinite(customChoice.customMaxWords)
+        ? Number(customChoice.customMaxWords)
+        : 5;
+      const customTagText = clampToWordLimit(rawCustomTagText || "", customMaxWords);
+
+      const tags = normalizedKeys.map(key => {
+        const choice = choiceByKey.get(key);
+        if (!choice) return "";
+        if (choice.custom) {
+          return customTagText ? `Other: ${customTagText}` : choice.text;
+        }
+        return choice.text;
+      }).filter(Boolean);
+
+      const answer = {
+        selectedTagKeys: normalizedKeys,
+        tags,
+        text: tags.join(", ")
+      };
+
+      if (customChoice && normalizedKeys.includes(customChoice.key)) {
+        answer.hasCustomTag = true;
+        answer.customTagText = customTagText;
+      }
+
+      return answer;
+    }
+
+    function isAnswerComplete(question, value) {
+      if (!question || !value || typeof value !== "object") return false;
+
+      if (question.type === "choice") {
+        const hasScore = Number.isFinite(value.score);
+        if (!hasScore) return false;
+        if (question.allowOther && value.isOther) {
+          const otherText = typeof value.otherText === "string" ? value.otherText : "";
+          return countWords(otherText) > 0;
+        }
+        const text = typeof value.text === "string" ? value.text.trim() : "";
+        return text.length > 0;
+      }
+
+      if (question.type === "tags") {
+        const selectedTagKeys = getSelectedTagKeys(question, value);
+        if (!selectedTagKeys.length) return false;
+        const customChoice = getCustomTagChoice(question);
+        if (customChoice && selectedTagKeys.includes(customChoice.key)) {
+          const maxWords = Number.isFinite(customChoice.customMaxWords)
+            ? Number(customChoice.customMaxWords)
+            : 5;
+          const customTagText = clampToWordLimit(value.customTagText || "", maxWords);
+          return countWords(customTagText) > 0;
+        }
+        return true;
+      }
+
+      const text = typeof value.text === "string" ? value.text.trim() : "";
+      return text.length > 0;
+    }
+
+    function countAnsweredAnswers() {
+      return REQUIRED_QUESTION_KEYS.filter(key => {
+        const question = questionByKey[key];
+        return isAnswerComplete(question, answers[key]);
+      }).length;
+    }
+
+    function getMoodLabel(avg, lowSignalCount) {
+      if (lowSignalCount >= 5 || avg <= 1.8) return "Very low";
+      if (lowSignalCount >= 3 || avg <= 2.6) return "Low";
+      if (avg <= 3.3) return "Neutral";
+      if (avg <= 4.1) return "Good";
+      return "Very good";
+    }
+
+    function applyAnalysisPermissionState(enabled, message) {
+      analysisConsentEnabled = enabled === true;
+
+      if (!analysisConsentEnabled) {
+        if (summaryNote) {
+          summaryNote.textContent = message || "Analysis is disabled. Enable it in Profile > Other Settings.";
+        }
+        confidenceValue.textContent = "--";
+        moodEstimate.textContent = "--";
+        return;
+      }
+
+      if (summaryNote) {
+        summaryNote.textContent = DEFAULT_SUMMARY_NOTE;
+      }
+    }
+
+    function readStoredConsentPreference() {
+      const stored = localStorage.getItem("zynee_data_analysis_consent");
+      if (stored === "allowed") return true;
+      if (stored === "declined") return false;
+      return null;
+    }
+
+    async function loadDataAnalysisPermission() {
+      const stored = readStoredConsentPreference();
+      try {
+        const response = await fetch("/api/data-analysis-consent", { cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          if (stored !== null) {
+            applyAnalysisPermissionState(stored, "");
+          } else {
+            applyAnalysisPermissionState(true, "");
+          }
+          return;
+        }
+
+        const enabled = data && data.analysisEnabled === true;
+        applyAnalysisPermissionState(enabled, data && data.message ? data.message : "");
+        localStorage.setItem("zynee_data_analysis_consent", enabled ? "allowed" : "declined");
+      } catch (error) {
+        if (stored !== null) {
+          applyAnalysisPermissionState(stored, "");
+        } else {
+          applyAnalysisPermissionState(true, "");
+        }
+      }
+    }
+
+    function refreshSummary() {
+      if (!analysisConsentEnabled) {
+        confidenceValue.textContent = "--";
+        moodEstimate.textContent = "--";
+        return;
+      }
+
+      const answeredCount = countAnsweredAnswers();
+      const completion = Math.round((answeredCount / Math.max(1, TOTAL_REQUIRED_COUNT)) * 100);
+      confidenceValue.textContent = `${completion}%`;
+
+      const numeric = getNumericAnswers();
+      if (!numeric.length) {
+        moodEstimate.textContent = "-";
+        return;
+      }
+
+      const avg = numeric.reduce((a, b) => a + b, 0) / numeric.length;
+      const lowSignalCount = numeric.filter(score => score <= 2).length;
+      moodEstimate.textContent = getMoodLabel(avg, lowSignalCount);
+    }
+
+    function markStatus(message, type) {
+      statusText.textContent = message || "";
+      statusText.classList.remove("error", "success");
+      if (type) {
+        statusText.classList.add(type);
+      }
+    }
+
+    function resolveApiErrorMessage(response, data, fallbackMessage) {
+      const defaultMessage = fallbackMessage || "Could not save this check-in.";
+      const rawMessage = data && typeof data.message === "string" ? data.message.trim() : "";
+      if (rawMessage && rawMessage.toLowerCase() !== "no message available") {
+        return rawMessage;
+      }
+      if (response && response.status === 401) {
+        return "Please log in and try again.";
+      }
+      if (response && response.status >= 500) {
+        return "Server issue while saving. Please try again in a moment.";
+      }
+      return defaultMessage;
+    }
+
+    function setPostSubmitVisible(isVisible) {
+      if (questionBox) {
+        questionBox.style.display = isVisible ? "none" : "flex";
+      }
+      if (navRow) {
+        navRow.style.display = isVisible ? "none" : "flex";
+      }
+      if (postSubmitPanel) {
+        postSubmitPanel.classList.toggle("active", isVisible);
+      }
+      if (isVisible) {
+        progressPill.textContent = "Completed";
+      }
+    }
+
+    function renderQuestion() {
+      if (hasSubmittedInSession) {
+        setPostSubmitVisible(true);
+        backBtn.disabled = true;
+        nextBtn.disabled = true;
+        return;
+      }
+
+      setPostSubmitVisible(false);
+      const question = questions[currentIndex];
+      if (!question) return;
+
+      const questionNumber = COUNTED_QUESTION_KEYS.indexOf(question.key) + 1;
+      progressPill.textContent = question.type === "tags"
+        ? "🏷️ Trigger Tags"
+        : `Question ${questionNumber} / ${TOTAL_QUESTION_COUNT}`;
+      questionTypeEl.textContent = question.label;
+      questionTextEl.textContent = question.prompt;
+      questionInputArea.innerHTML = "";
+
+      const existingAnswer = answers[question.key];
+
+      if (question.type === "choice") {
+        const wrap = document.createElement("div");
+        wrap.className = "choices";
+
+        question.choices.forEach(choice => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "choice-btn";
+          btn.textContent = choice.text;
+
+          const existingText = existingAnswer && typeof existingAnswer.text === "string"
+            ? existingAnswer.text.trim()
+            : "";
+          const existingChoiceText = existingAnswer && typeof existingAnswer.choiceText === "string"
+            ? existingAnswer.choiceText.trim()
+            : "";
+          const isOtherSelected = existingAnswer && existingAnswer.isOther === true;
+          const isSelected = existingChoiceText
+            ? existingChoiceText === choice.text
+            : (choice.other ? isOtherSelected || existingText.toLowerCase().startsWith("other") : existingText === choice.text);
+
+          if (isSelected) {
+            btn.classList.add("selected");
+          }
+
+          btn.addEventListener("click", () => {
+            if (choice.other) {
+              const existingOtherText = existingAnswer && existingAnswer.isOther
+                ? clampToWordLimit(existingAnswer.otherText || "", question.otherMaxWords || 9)
+                : "";
+              answers[question.key] = {
+                choiceText: choice.text,
+                text: existingOtherText ? `Other: ${existingOtherText}` : choice.text,
+                score: choice.value,
+                isOther: true,
+                otherText: existingOtherText
+              };
+            } else {
+              answers[question.key] = {
+                choiceText: choice.text,
+                text: choice.text,
+                score: choice.value
+              };
+            }
+            markStatus("");
+            renderQuestion();
+            refreshSummary();
+          });
+          wrap.appendChild(btn);
+        });
+
+        questionInputArea.appendChild(wrap);
+
+        if (question.allowOther && existingAnswer && existingAnswer.isOther) {
+          const otherWrap = document.createElement("div");
+          otherWrap.style.display = "flex";
+          otherWrap.style.flexDirection = "column";
+          otherWrap.style.gap = "0.45rem";
+
+          const otherPrompt = document.createElement("div");
+          otherPrompt.className = "question-label";
+          otherPrompt.textContent = question.otherPrompt || "Please specify";
+          otherWrap.appendChild(otherPrompt);
+
+          const otherInput = document.createElement("input");
+          otherInput.type = "text";
+          otherInput.className = "short-answer";
+          otherInput.placeholder = question.otherPlaceholder || "Up to 9 words";
+          otherInput.value = typeof existingAnswer.otherText === "string" ? existingAnswer.otherText : "";
+          otherInput.addEventListener("input", () => {
+            const limited = clampToWordLimit(otherInput.value, question.otherMaxWords || 9);
+            if (limited !== otherInput.value) {
+              otherInput.value = limited;
+            }
+            answers[question.key] = {
+              choiceText: "Other",
+              text: limited ? `Other: ${limited}` : "Other",
+              score: Number.isFinite(existingAnswer.score) ? existingAnswer.score : 3,
+              isOther: true,
+              otherText: limited
+            };
+            refreshSummary();
+          });
+          otherWrap.appendChild(otherInput);
+
+          if (question.otherExample) {
+            const helper = document.createElement("div");
+            helper.className = "input-helper";
+            helper.textContent = question.otherExample;
+            otherWrap.appendChild(helper);
+          }
+
+          questionInputArea.appendChild(otherWrap);
+        }
+      } else if (question.type === "tags") {
+        const wrap = document.createElement("div");
+        wrap.className = "choices tags-grid";
+
+        const tagChoices = getTagChoices(question);
+        const selectedTagKeys = getSelectedTagKeys(question, existingAnswer);
+        const customChoice = getCustomTagChoice(question);
+
+        tagChoices.forEach(choice => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "choice-btn";
+          btn.textContent = choice.text;
+          if (selectedTagKeys.includes(choice.key)) {
+            btn.classList.add("selected");
+          }
+          btn.addEventListener("click", () => {
+            const isActive = selectedTagKeys.includes(choice.key);
+            const nextSelectedKeys = isActive
+              ? selectedTagKeys.filter(key => key !== choice.key)
+              : [...selectedTagKeys, choice.key];
+
+            const existingCustomTagText = existingAnswer && typeof existingAnswer.customTagText === "string"
+              ? existingAnswer.customTagText
+              : "";
+            const nextCustomTagText = customChoice && nextSelectedKeys.includes(customChoice.key)
+              ? existingCustomTagText
+              : "";
+
+            if (nextSelectedKeys.length) {
+              answers[question.key] = buildTagsAnswer(question, nextSelectedKeys, nextCustomTagText);
+            } else {
+              delete answers[question.key];
+            }
+            markStatus("");
+            renderQuestion();
+            refreshSummary();
+          });
+          wrap.appendChild(btn);
+        });
+
+        questionInputArea.appendChild(wrap);
+
+        const helper = document.createElement("div");
+        helper.className = "input-helper";
+        helper.textContent = "You can select multiple tags. Choose at least one to continue.";
+        questionInputArea.appendChild(helper);
+
+        if (customChoice && selectedTagKeys.includes(customChoice.key)) {
+          const customWrap = document.createElement("div");
+          customWrap.style.display = "flex";
+          customWrap.style.flexDirection = "column";
+          customWrap.style.gap = "0.45rem";
+
+          const customPrompt = document.createElement("div");
+          customPrompt.className = "question-label";
+          customPrompt.textContent = customChoice.customPrompt || "Other (max 5 words)";
+          customWrap.appendChild(customPrompt);
+
+          const customInput = document.createElement("input");
+          customInput.type = "text";
+          customInput.className = "short-answer";
+          customInput.placeholder = customChoice.customPlaceholder || "Up to 5 words";
+          customInput.value = existingAnswer && typeof existingAnswer.customTagText === "string"
+            ? existingAnswer.customTagText
+            : "";
+          customInput.addEventListener("input", () => {
+            const maxWords = Number.isFinite(customChoice.customMaxWords)
+              ? Number(customChoice.customMaxWords)
+              : 5;
+            const limited = clampToWordLimit(customInput.value, maxWords);
+            if (limited !== customInput.value) {
+              customInput.value = limited;
+            }
+            answers[question.key] = buildTagsAnswer(question, selectedTagKeys, limited);
+            refreshSummary();
+          });
+          customWrap.appendChild(customInput);
+          questionInputArea.appendChild(customWrap);
+        }
+      } else {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "short-answer";
+        input.maxLength = question.maxLength || 120;
+        input.placeholder = question.placeholder || "Type here";
+        input.value = (existingAnswer && existingAnswer.text) || "";
+        input.addEventListener("input", () => {
+          answers[question.key] = { text: input.value.trim() };
+          refreshSummary();
+        });
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            moveNext();
+          }
+        });
+        questionInputArea.appendChild(input);
+      }
+
+      backBtn.disabled = isSaving || currentIndex === 0;
+      nextBtn.disabled = isSaving;
+      const isLastStep = currentIndex === questions.length - 1;
+      const nextIsTagsStep = !isLastStep && questions[currentIndex + 1] && questions[currentIndex + 1].type === "tags";
+      nextBtn.textContent = isSaving
+        ? "Saving..."
+        : (isLastStep ? "Final Submit" : (nextIsTagsStep ? "Next: Trigger Tags" : "Next"));
+    }
+
+    function ensureCurrentAnswerCaptured() {
+      const question = questions[currentIndex];
+      if (!question || question.type !== "text") return;
+      const input = questionInputArea.querySelector("input.short-answer");
+      if (input) {
+        answers[question.key] = { text: input.value.trim() };
+      }
+    }
+
+    function moveNext() {
+      if (isSaving || hasSubmittedInSession) return;
+      ensureCurrentAnswerCaptured();
+      markStatus("");
+      const question = questions[currentIndex];
+      if (!question) return;
+      const answer = answers[question.key];
+
+      if (!isAnswerComplete(question, answer)) {
+        if (question.type === "choice" && question.allowOther && answer && answer.isOther) {
+          const maxWords = question.otherMaxWords || 9;
+          markStatus(`Please specify this answer in up to ${maxWords} words.`, "error");
+          return;
+        }
+        if (question.type === "tags") {
+          const selectedTagKeys = getSelectedTagKeys(question, answer);
+          const customChoice = getCustomTagChoice(question);
+          if (customChoice && selectedTagKeys.includes(customChoice.key)) {
+            const maxWords = Number.isFinite(customChoice.customMaxWords)
+              ? Number(customChoice.customMaxWords)
+              : 5;
+            markStatus(`Please specify your custom trigger in up to ${maxWords} words.`, "error");
+            return;
+          }
+          markStatus("Please choose at least one mood trigger tag before continuing.", "error");
+          return;
+        }
+        markStatus("Please answer this question before continuing.", "error");
+        return;
+      }
+
+      if (question.type === "choice" && question.allowOther && answer && answer.isOther) {
+        const maxWords = question.otherMaxWords || 9;
+        const normalizedOtherText = clampToWordLimit(answer.otherText || "", maxWords);
+        const fallbackScore = Number.isFinite(answer.score)
+          ? Number(answer.score)
+          : ((question.choices.find(choice => choice.other) || {}).value ?? 3);
+        answers[question.key] = {
+          ...answer,
+          choiceText: "Other",
+          text: `Other: ${normalizedOtherText}`,
+          score: fallbackScore,
+          isOther: true,
+          otherText: normalizedOtherText
+        };
+      }
+
+      if (question.type === "tags") {
+        const selectedTagKeys = getSelectedTagKeys(question, answer);
+        const customTagText = answer && typeof answer.customTagText === "string"
+          ? answer.customTagText
+          : "";
+        answers[question.key] = buildTagsAnswer(question, selectedTagKeys, customTagText);
+      }
+
+      if (currentIndex < questions.length - 1) {
+        currentIndex += 1;
+        renderQuestion();
+        return;
+      }
+
+      saveCheckIn();
+    }
+
+    function moveBack() {
+      if (isSaving || hasSubmittedInSession) return;
+      ensureCurrentAnswerCaptured();
+      markStatus("");
+      if (currentIndex > 0) {
+        currentIndex -= 1;
+        renderQuestion();
+      }
+    }
+
+    function startNewCheckIn() {
+      if (isSaving) return;
+      hasSubmittedInSession = false;
+      currentIndex = 0;
+      Object.keys(answers).forEach(key => delete answers[key]);
+      markStatus("");
+      refreshSummary();
+      renderQuestion();
+    }
+
+    function setSavingState(value) {
+      isSaving = value;
+      renderQuestion();
+    }
+
+    function cloneAnswersIntoState(rawAnswers) {
+      if (!rawAnswers || typeof rawAnswers !== "object") return;
+      Object.keys(answers).forEach(key => delete answers[key]);
+
+      Object.entries(rawAnswers).forEach(([key, value]) => {
+        if (!value || typeof value !== "object") return;
+        const question = questionByKey[key];
+        const nextValue = {};
+
+        const text = typeof value.text === "string" ? value.text.trim() : "";
+        if (text) {
+          nextValue.text = text;
+        }
+
+        const score = Number.isFinite(Number(value.score)) ? Number(value.score) : undefined;
+        if (Number.isFinite(score)) {
+          nextValue.score = score;
+        }
+
+        if (typeof value.choiceText === "string" && value.choiceText.trim()) {
+          nextValue.choiceText = value.choiceText.trim();
+        }
+
+        if (value.isOther === true) {
+          nextValue.isOther = true;
+          nextValue.choiceText = "Other";
+        }
+
+        if (typeof value.otherText === "string" || nextValue.isOther) {
+          const maxWords = question && Number.isFinite(question.otherMaxWords)
+            ? question.otherMaxWords
+            : 9;
+          const normalizedOtherText = clampToWordLimit(value.otherText || "", maxWords);
+          if (normalizedOtherText) {
+            nextValue.otherText = normalizedOtherText;
+          }
+          if (nextValue.isOther) {
+            nextValue.text = normalizedOtherText ? `Other: ${normalizedOtherText}` : "Other";
+            if (!Number.isFinite(nextValue.score)) {
+              const fallbackScore = question && Array.isArray(question.choices)
+                ? ((question.choices.find(choice => choice.other) || {}).value ?? 3)
+                : 3;
+              nextValue.score = fallbackScore;
+            }
+          }
+        }
+
+        if (question && question.type === "tags") {
+          const selectedTagKeys = getSelectedTagKeys(question, value);
+          const customChoice = getCustomTagChoice(question);
+          const customMaxWords = customChoice && Number.isFinite(customChoice.customMaxWords)
+            ? Number(customChoice.customMaxWords)
+            : 5;
+          const customTagText = clampToWordLimit(value.customTagText || "", customMaxWords);
+          if (selectedTagKeys.length) {
+            const normalizedTagsAnswer = buildTagsAnswer(question, selectedTagKeys, customTagText);
+            Object.assign(nextValue, normalizedTagsAnswer);
+          }
+        } else if (Array.isArray(value.tags)) {
+          const tags = value.tags.map(tag => String(tag).trim()).filter(Boolean);
+          if (tags.length) {
+            nextValue.tags = tags;
+            if (!nextValue.text) {
+              nextValue.text = tags.join(", ");
+            }
+          }
+        }
+
+        if (!Object.keys(nextValue).length) return;
+        answers[key] = nextValue;
+      });
+    }
+
+    function setListMessage(message) {
+      latestList.innerHTML = "";
+      const item = document.createElement("li");
+      item.textContent = message;
+      latestList.appendChild(item);
+    }
+
+    function getAnswerText(value) {
+      if (!value || typeof value !== "object") return "";
+      const text = typeof value.text === "string" ? value.text.trim() : "";
+      if (text) return text;
+      if (Array.isArray(value.tags) && value.tags.length) {
+        return value.tags.join(", ");
+      }
+      if (Number.isFinite(value.score)) return String(value.score);
+      return "";
+    }
+
+    function getAnswerTitle(key) {
+      const question = questionByKey[key];
+      if (question) return question.prompt;
+      return key
+        .replaceAll("_", " ")
+        .replace(/\b\w/g, char => char.toUpperCase());
+    }
+
+    async function saveCheckIn() {
+      ensureCurrentAnswerCaptured();
+      setSavingState(true);
+      markStatus("Saving check-in...", null);
+
+      const payload = {
+        version: QUESTIONNAIRE_VERSION,
+        questionCount: TOTAL_REQUIRED_COUNT,
+        answers
+      };
+
+      try {
+        const response = await fetch(CHECKIN_API_BASE, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+          throw new Error(resolveApiErrorMessage(response, data, "Could not save this check-in."));
+        }
+
+        cloneAnswersIntoState(data.answers || answers);
+        refreshSummary();
+        renderSavedSnapshot({
+          savedAt: data.savedAt,
+          answers: data.answers || answers
+        });
+        hasSubmittedInSession = true;
+        markStatus("Your response has been recorded.", "success");
+      } catch (error) {
+        markStatus(error?.message || "Save failed. Please try again.", "error");
+      } finally {
+        setSavingState(false);
+      }
+    }
+
+    function renderSavedSnapshot(payload) {
+      if (!payload) {
+        setListMessage("No saved check-in yet.");
+        lastSavedValue.textContent = "Not saved yet";
+        return;
+      }
+
+      const timestamp = payload.savedAt || payload.timestamp;
+      const date = new Date(timestamp);
+      if (!Number.isNaN(date.getTime())) {
+        lastSavedValue.textContent = date.toLocaleString();
+      } else {
+        lastSavedValue.textContent = "Not saved yet";
+      }
+
+      const savedAnswers = payload.answers && typeof payload.answers === "object"
+        ? payload.answers
+        : {};
+
+      const orderedKeys = [
+        ...questions.map(question => question.key),
+        ...Object.keys(savedAnswers).filter(key => !questionByKey[key])
+      ];
+
+      latestList.innerHTML = "";
+      let visibleCount = 0;
+      orderedKeys.forEach(key => {
+        const answerText = getAnswerText(savedAnswers[key]);
+        if (!answerText) return;
+
+        const item = document.createElement("li");
+        const title = document.createElement("strong");
+        title.textContent = `${getAnswerTitle(key)}: `;
+        item.appendChild(title);
+        item.appendChild(document.createTextNode(answerText));
+        latestList.appendChild(item);
+        visibleCount += 1;
+      });
+
+      if (!visibleCount) {
+        setListMessage("No answers captured.");
+      }
+    }
+
+    async function loadSavedSnapshot() {
+      try {
+        const response = await fetch(`${CHECKIN_API_BASE}/latest`, { method: "GET" });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          renderSavedSnapshot(null);
+          if (response.status === 401) {
+            markStatus("Please log in again to load saved check-ins.", "error");
+          }
+          return;
+        }
+
+        if (!data.saved) {
+          renderSavedSnapshot(null);
+          return;
+        }
+
+        const savedAnswers = data.answers && typeof data.answers === "object" ? data.answers : {};
+        renderSavedSnapshot({
+          savedAt: data.savedAt,
+          answers: savedAnswers
+        });
+      } catch (error) {
+        renderSavedSnapshot(null);
+        markStatus("Could not load your last saved check-in.", "error");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", async function () {
+      applyTheme(selectedTheme);
+      document.getElementById("hueSlider").value = savedHue;
+      if (selectedTheme === "custom") {
+        document.getElementById("hueSliderContainer").style.display = "block";
+        updateHue(savedHue);
+      }
+
+      await loadDataAnalysisPermission();
+      await loadSavedSnapshot();
+      refreshSummary();
+      renderQuestion();
+
+      backBtn.addEventListener("click", moveBack);
+      nextBtn.addEventListener("click", moveNext);
+      submitAnotherBtn.addEventListener("click", startNewCheckIn);
+    });
+  </script>
+
+  <script id="sessionBackGuard">
+  (function () {
+    function needsRefresh() {
+      var nav = (performance.getEntriesByType && performance.getEntriesByType("navigation")) || [];
+      return nav.length > 0 && nav[0].type === "back_forward";
+    }
+
+    window.addEventListener("pageshow", function (event) {
+      if (event.persisted || needsRefresh()) {
+        window.location.reload();
+      }
+    });
+  })();
+  </script>
+
+  <div id="floatingCompanionConfig"
+       th:if="${session.email != null}"
+       th:attr="data-session-key=${session.assistantSessionKey},data-user-id=${session.userId},data-user-name=${session.name},data-country-code=${session.countryCode}"
+       style="display:none;"></div>
+  <script src="/js/future-note-notifier.js"></script>
+  <script src="/js/floating-companion.js"></script>
+</body>
+</html>

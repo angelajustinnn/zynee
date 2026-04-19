@@ -1,0 +1,2631 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <script th:inline="javascript">
+    window.ZYNEE_IS_GUEST = /*[[${session.isGuest == true}]]*/ false;
+  </script>
+  <script src="/js/guest-access-guard.js"></script>
+  <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zyneé | Home</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/responsive.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+
+body,
+.card,
+.sidebar,
+.top-bar,
+.welcome-box {
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+    /* Theme submenu and dots */
+.theme-options {
+  margin-top: 0.5rem;
+  margin-left: 1.2rem;
+  display: none;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: #6b5c7d;
+}
+
+.theme-options.active {
+  display: flex;
+}
+
+.theme-option {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#themeMenu {
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.theme-option .dot {
+  height: 0.6rem;
+  width: 0.6rem;
+  border-radius: 50%;
+  border: 1px solid #6b5c7d;
+  background-color: transparent;
+}
+
+.theme-option.selected .dot {
+  background-color: #8b5da9;
+}
+
+/* Vertical hue slider */
+#hueSliderContainer {
+  display: none;
+  margin-top: 1rem;
+  margin-left: 1.8rem;
+  height: 140px;
+  position: relative;
+}
+
+#hueSlider {
+  appearance: slider-vertical;           /* ✅ Standard */
+  -webkit-appearance: slider-vertical;   /* ✅ Safari/old Chrome */
+  writing-mode: bt-lr;
+  width: 20px;
+  height: 100%;
+  transform: rotate(180deg);
+}
+
+.vs-text {
+  font-size: 2.5rem;
+  color: var(--card-text-color);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5);
+  background-size: 400% 400%;
+  animation: dreamyBG 15s ease infinite;
+  font-family: 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  overflow-y: auto; /* allow vertical scrolling */
+  position: relative;
+}
+
+    @keyframes dreamyBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    #mainContent {
+  display: none;
+  margin-top: calc(60px + 0.1cm);
+  transition: margin-left 0.4s ease, width 0.4s ease, margin-top 0.4s ease;
+}
+
+    .blocker {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      backdrop-filter: blur(10px);
+      background-color: rgba(255, 255, 255, 0.4);
+      z-index: 999;
+      pointer-events: all;
+    }
+
+    .blocker.hidden {
+      display: none;
+    }
+
+    /* Theme submenu and dots */
+.theme-options {
+  margin-top: 0.5rem;
+  margin-left: 1.2rem;
+  display: none;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: #6b5c7d;
+}
+
+.theme-options.active {
+  display: flex;
+}
+
+.theme-option {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.theme-option .dot {
+  height: 0.6rem;
+  width: 0.6rem;
+  border-radius: 50%;
+  border: 1px solid #6b5c7d;
+  background-color: transparent;
+}
+
+.theme-option.selected .dot {
+  background-color: #8b5da9;
+}
+
+    .top-bar {
+  position: fixed; /* fixed instead of absolute */
+  top: 0;
+  left: 0;
+  height: 60px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.2rem;
+  z-index: 998;
+  pointer-events: none;
+  transition: all 0.4s ease;
+}
+
+    .top-bar.active {
+      pointer-events: auto;
+    }
+
+    .top-left-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-shrink: 0;
+    }
+
+    .hamburger {
+      font-size: 1.6rem;
+      background: none;
+      border: none;
+      color: #8b5da9;
+      cursor: pointer;
+    }
+
+    .profile-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #ccc;
+      border: 2px solid white;
+      cursor: pointer;
+    }
+
+    .search-bar {
+      width: 200px;
+      transition: width 0.3s ease;
+      padding: 6px 12px;
+      border-radius: 2rem;
+      border: 1px solid #ddd;
+      background-color: rgba(255, 255, 255, 0.85);
+      outline: none;
+    }
+
+    .search-bar:focus {
+      width: 300px;
+      background-color: white;
+    }
+
+    .suggestions {
+  position: fixed;
+  top: calc(60px + 0.1cm); /* Align just below top bar */
+  left: 50%;
+  transform: translateX(-50%);
+  transition: all 0.4s ease;
+  width: 300px;
+  background: white;
+  padding: 0.8rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 997;
+  display: none;
+}
+
+    .suggestions.show {
+      display: block;
+    }
+
+    .suggestions div {
+      padding: 0.3rem 0;
+      cursor: pointer;
+    }
+
+    .suggestions div:hover {
+      color: #8b5da9;
+    }
+
+    .sidebar {
+  position: fixed;
+  top: 60px; /* Exactly below top bar */
+  left: 0;
+  width: 240px;
+  height: calc(100vh - 60px);
+  background-color: #ffffff;
+  box-shadow: 2px 2px 15px rgba(190, 160, 255, 0.2);
+  padding: 1rem;
+  transform: translateX(-100%);
+  transition: transform 0.4s ease, background-color 0.3s ease;
+  z-index: 997;
+  border-top-right-radius: 1rem;
+  border-bottom-right-radius: 1rem;
+  overflow-y: auto;
+}
+
+.sidebar.open {
+      transform: translateX(0);
+    }
+    .sidebar h4 {
+      font-size: 1.4rem;
+      color: #8b5da9;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar ul li {
+      padding: 0.6rem 0;
+      color: #6b5c7d;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .sidebar ul li:hover {
+      color: #8b5da9;
+    }
+
+    .welcome-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 2.3rem 2.35rem 2.1rem;
+      border-radius: 24px;
+      box-shadow: 0 12px 28px rgba(118, 95, 153, 0.18);
+      width: min(90vw, 520px);
+      max-width: 520px;
+      text-align: center;
+      z-index: 1000;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+    }
+
+    .candle-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.candle-flame {
+   width: 20px;
+  height: 32px;
+  background: radial-gradient(ellipse at center, #fff89a 0%, #ffa500 60%, transparent 100%);
+  border-radius: 50% 50% 45% 45%;
+  opacity: 0.9;
+  animation: flicker 0.4s infinite alternate ease-in-out;
+  filter: drop-shadow(0 0 12px #ffae00);
+}
+
+.candle-body {
+  width: 38px;
+  height: 120px;
+  background-color: #fce4ec;
+  border-radius: 10px;
+  position: relative;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+}
+
+.wick {
+  width: 4px;
+  height: 20px;
+  background: #333;
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+@keyframes flicker {
+  0%   { transform: scale(1) translateY(0px) rotate(0deg); opacity: 0.95; }
+  30%  { transform: scale(1.05) translateY(-2px) rotate(1deg); opacity: 1; }
+  60%  { transform: scale(0.98) translateY(1px) rotate(-1deg); opacity: 0.85; }
+  100% { transform: scale(1) translateY(0px) rotate(0deg); opacity: 0.95; }
+  100% { transform: scale(0.95) translateY(1px); opacity: 0.75; }
+}
+
+    .welcome-box.hidden {
+      opacity: 0;
+      pointer-events: none;
+      display: none;
+    }
+
+    .welcome-title {
+      font-size: 1.95rem;
+      font-weight: 700;
+      color: #7c4cb4;
+      margin-bottom: 0.95rem;
+      line-height: 1.24;
+      letter-spacing: 0.1px;
+    }
+
+    .welcome-msg {
+      font-size: 1.2rem;
+      color: #64578b;
+      margin-bottom: 1.2rem;
+      font-weight: 500;
+    }
+
+    .welcome-actions {
+      display: flex;
+      gap: 0.65rem;
+      justify-content: center;
+      margin-top: 0.75rem;
+    }
+
+    .welcome-action-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 0.55rem 1rem;
+      font-size: 0.93rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .welcome-action-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(99, 68, 136, 0.24);
+    }
+
+    .welcome-action-btn.start-tour {
+      background: #7d5aa7;
+      color: #fff;
+    }
+
+    .welcome-action-btn.skip-tour {
+      background: #f1e9f9;
+      color: #644783;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      font-size: 1.5rem;
+      color: #b4acc5;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+
+    .close-btn:hover {
+      color: #988eab;
+    }
+
+    .guest-upgrade-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1600;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    .guest-upgrade-overlay.show {
+      display: flex;
+    }
+    .guest-upgrade-card {
+      width: min(90vw, 470px);
+      background: rgba(255, 255, 255, 0.94);
+      border-radius: 22px;
+      padding: 1.5rem 1.4rem 1.25rem;
+      box-shadow: 0 14px 36px rgba(75, 53, 110, 0.2);
+      position: relative;
+      text-align: center;
+    }
+    .guest-upgrade-close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      border: none;
+      background: none;
+      font-size: 1.2rem;
+      color: #a99fbf;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .guest-upgrade-title {
+      font-size: 1.12rem;
+      font-weight: 700;
+      color: #7f57ad;
+      margin-bottom: 0.5rem;
+    }
+    .guest-upgrade-message {
+      color: #64567d;
+      margin-bottom: 1rem;
+      font-size: 0.96rem;
+    }
+    .guest-upgrade-actions {
+      display: flex;
+      justify-content: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .guest-upgrade-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 0.48rem 1rem;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .guest-upgrade-btn.login {
+      background: #e9d9fa;
+      color: #6e45a0;
+    }
+    .guest-upgrade-btn.signup {
+      background: #7d5aa7;
+      color: #fff;
+    }
+
+    /* Keep heading style aligned with Journal page and body text readable */
+.card h3 {
+  color: var(--card-text-color) !important;
+  font-size: 1.75rem;
+  opacity: 1 !important;
+}
+
+.card p {
+  color: #1a1a1a !important;
+  opacity: 1 !important;
+}
+
+:root {
+  --card-text-color: #1a1a1a;
+}
+
+.card h3 {
+  color: var(--card-text-color) !important;
+  font-size: 1.75rem;
+  opacity: 1;
+}
+
+.card p {
+  color: var(--card-text-color) !important;
+  opacity: 1;
+}
+
+#miniCalendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+  font-size: 0.95rem;
+  text-align: center;
+  margin: 1.4rem auto 0 auto;
+  padding: 0 12px;
+  max-width: 100%;
+}
+#monthYearDisplay {
+  color: var(--card-text-color) !important;
+  font-weight: 500;
+}
+
+#miniCalendar .day-name {
+  font-weight: bold;
+  color: #8b5da9;
+}
+
+#miniCalendar .day {
+  padding: 10px 0;
+  color: #000000 !important;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.65);
+  transition: background-color 0.3s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+}
+
+#miniCalendar .day.today {
+  background-color: #e9d5ff;
+  font-weight: bold;
+  color: #5c3d91;
+  box-shadow: 0 4px 10px rgba(140, 80, 200, 0.2);
+}
+#monthYearPicker select {
+  max-width: 150px;
+  margin: 0 auto;
+}
+#mainContent {
+  transition: margin-left 0.4s ease, width 0.4s ease, margin-top 0.4s ease;
+}
+.square-card {
+  width: 100%;
+  max-width: 450px;   /* 🔹 Controls the width — adjust this to make cards smaller/larger */
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.quick-checkin-launcher {
+  max-width: 450px;
+  min-height: 132px;
+  aspect-ratio: auto;
+}
+
+.quick-checkin-launcher .quick-checkin-title,
+.quick-checkin-launcher .quick-checkin-subtitle {
+  width: 100%;
+  max-width: 320px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.quick-checkin-launcher .quick-checkin-subtitle {
+  line-height: 1.45;
+}
+
+.cosmic-insights-wide {
+  max-width: min(100%, calc(50% + 450px));
+  min-height: 360px;
+  height: auto;
+  aspect-ratio: auto;
+}
+
+.cosmic-insights-wide .cosmic-brand {
+  width: 100%;
+  text-align: center;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.cosmic-insights-wide .cosmic-title-shift {
+  margin-top: 10px;
+}
+
+.cosmic-insight-box {
+  width: 100%;
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 16px 18px;
+  background-color: #f4d9ff;
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(139, 93, 169, 0.16);
+  height: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-self: stretch;
+  overflow: visible;
+}
+
+.cosmic-insights-wide .cosmic-vibe-headline {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  text-align: center;
+  font-size: 1.02rem;
+  line-height: 1.4;
+  font-family: inherit;
+  font-weight: 600;
+  color: #6f4b8f;
+}
+
+.cosmic-insights-wide .cosmic-vibe-context {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  text-align: center;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: #6f4b8f;
+  opacity: 1;
+  padding-inline: 0;
+}
+
+.cosmic-insights-wide .cosmic-subline {
+  text-align: center;
+  color: #6f4b8f;
+  opacity: 0.9;
+}
+
+.cosmic-insight-box p {
+  margin: 0 !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+body.dark-mode .cosmic-insight-box,
+body.dark-mode .cosmic-insight-box p,
+body.dark-mode .cosmic-insight-box #cosmicVibeHeadline,
+body.dark-mode .cosmic-insight-box #cosmicVibeContext {
+  color: #111111 !important;
+}
+
+
+.music-player-ui {
+  padding: 15px;
+  font-size: 0.95rem;
+}
+
+.music-player-ui .btn {
+  width: 36px;
+  height: 36px;
+}
+
+.music-player-ui .progress {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.cute-button {
+      padding: 10px 24px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 2rem;
+      background-color: #f4d9ff;
+      color: #8b5da9;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .cute-button:hover {
+      background-color: #e5c8f5;
+      transform: scale(1.05);
+    }
+
+   .mood-slider {
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(to right,
+    #e74c3c 0%,     /* red - very sad */
+    #e67e22 25%,    /* orange - sad */
+    #f1c40f 50%,    /* yellow - neutral */
+    #2ecc71 75%,    /* light green - happy */
+    #27ae60 100%    /* green - very happy */
+  );
+  accent-color: #8b5da9;
+}
+
+/* Chrome & Safari */
+.mood-slider::-webkit-slider-runnable-track {
+  height: 10px;
+  background: linear-gradient(to right,
+    #e74c3c 0%,
+    #e67e22 25%,
+    #f1c40f 50%,
+    #2ecc71 75%,
+    #27ae60 100%
+  );
+  border-radius: 5px;
+}
+
+.mood-slider::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  background: #8b5da9;
+  border: none;
+  border-radius: 50%;
+  margin-top: -4px;
+}
+
+/* Firefox - FIXED */
+.mood-slider::-moz-range-track {
+  height: 10px;
+  background: linear-gradient(to right,
+    #e74c3c 0%,
+    #e67e22 25%,
+    #f1c40f 50%,
+    #2ecc71 75%,
+    #27ae60 100%
+  );
+  border-radius: 5px;
+}
+
+  .mood-slider {
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(to right,
+    #e74c3c 0%,
+    #e67e22 25%,
+    #f1c40f 50%,
+    #2ecc71 75%,
+    #27ae60 100%
+  );
+  accent-color: #8b5da9;
+  transition: all 0.3s ease;
+}
+
+/* Smooth thumb movement - Chrome & Safari */
+.mood-slider::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  background: #8b5da9;
+  border: none;
+  border-radius: 50%;
+  margin-top: -4px;
+  transition: all 0.3s ease;
+}
+
+/* Firefox */
+.mood-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: #8b5da9;
+  border: none;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+/* Optional: Smooth emoji label update */
+#moodLabel {
+  transition: all 0.2s ease;
+   color: var(--card-text-color);
+}
+#profileCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  border: 2px solid white;
+  cursor: pointer;
+  background-color: #8b5da9; /* default fallback */
+}
+
+.game-label, h5, .score-board {
+  color: var(--card-text-color, #1a1a1a);
+}
+
+.score-board {
+  color: var(--card-text-color);
+}
+
+#board div {
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: var(--ttt-symbol-color); /* dynamic color */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+:root {
+  --ttt-symbol-color: #1a1a1a; /* default: black */
+}
+
+  
+
+/* Widget customization controls */
+.widget-pencil {
+  font-size: 1.15rem;
+  background: none;
+  border: none;
+  color: #8b5da9;
+  cursor: pointer;
+  margin-left: 0.35rem;
+}
+
+.widget-edit-menu {
+  position: fixed;
+  top: 64px;
+  left: 16px;
+  z-index: 1100;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(139, 93, 169, 0.28);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  min-width: 180px;
+  display: none;
+  overflow: hidden;
+}
+
+.widget-edit-menu.show {
+  display: block;
+}
+
+.widget-edit-option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 0.95rem;
+  color: #4a3f5f;
+  cursor: pointer;
+}
+
+.widget-edit-option:hover {
+  background: rgba(139, 93, 169, 0.1);
+}
+
+body.widgets-editing .widget-item {
+  cursor: grab;
+  user-select: none;
+  animation: widget-jiggle 0.3s ease-in-out infinite alternate;
+}
+
+body.widgets-editing .widget-item:active {
+  cursor: grabbing;
+}
+
+.widget-item.widget-dragging {
+  opacity: 0.7;
+}
+
+.widget-ghost {
+  opacity: 0.35;
+}
+
+#moodForecastCard .forecast-pill {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 78%;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 2rem;
+  background-color: #f4d9ff;
+  color: #8b5da9;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+#moodForecastCard .forecast-conf {
+  width: 100%;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--card-text-color);
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+#moodForecastMeta {
+  font-size: 0.82rem;
+  color: var(--card-text-color);
+  opacity: 0.85;
+  text-align: center;
+}
+
+@keyframes widget-jiggle {
+  from { transform: rotate(-0.5deg); }
+  to { transform: rotate(0.5deg); }
+}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <div id="topbar" class="top-bar">
+    <button id="sidebarToggleBtn" class="hamburger" onclick="toggleSidebar()">☰</button>
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search Zyneé..." onfocus="expandSearch()" onblur="shrinkSearch()" oninput="showSuggestions(this.value)" />
+   <a id="profileLink" href="/profile.html" class="ms-3" style="text-decoration: none;">
+  <div th:if="${session.profilePhoto == null or session.profilePhoto == ''}"
+       id="profileCircle"
+       th:text="${session.initials}"
+       th:style="'background-color:' + ${session.profileColor}">
+  </div>
+
+  <img th:if="${session.profilePhoto != null and session.profilePhoto != ''}"
+       th:src="@{${session.profilePhoto}}"
+       alt="Profile"
+       style="width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              object-fit: cover;
+              cursor: pointer;" />
+</a>
+ </div>
+
+  <!-- Sidebar -->
+<div id="sidebar" class="sidebar">
+  <h4>Menu</h4>
+  <ul>
+     <li onclick="window.location.href='/home.html'">🏠 Home</li>
+  <li onclick="window.location.href='/journal.html'">📖 My Journal</li>
+  <li onclick="window.location.href='/stats.html'">📊 Stats</li>
+  <li onclick="window.location.href='/mood.html'">😊 Mood Tracker</li>
+      <li onclick="window.location.href='/quick-checkin.html'">⚡ Quick Check-In</li>
+  <li onclick="window.location.href='/affirmation.html'">🌟 Affirmations</li>
+  <li onclick="window.location.href='/candle.html'">🕯️ Candle</li>
+  <li onclick="window.location.href='/music.html'">🎵 Music</li>
+    <li data-tour="menu-assistant" onclick="window.location.href='/ai-assistant.html'">🤖 Emotional Assistant</li>
+      <li data-tour="menu-future-notes" onclick="window.location.href='/future-notes.html'">🫙 Future Notes</li>
+      <li data-tour="menu-insights" onclick="window.location.href='/insights.html'">🧠 Insights</li>
+    <li data-tour="menu-theme" onclick="toggleThemeMenu()">🎨 Theme</li>
+<div id="themeMenu" class="theme-options">
+  <div class="theme-option" onclick="applyTheme('default')">
+    <div class="dot"></div> Default Mode
+  </div>
+  <div class="theme-option" onclick="applyTheme('light')">
+    <div class="dot"></div> Light Mode
+  </div>
+  <div class="theme-option" onclick="applyTheme('dark')">
+    <div class="dot"></div> Dark Mode
+  </div>
+  <div class="theme-option" onclick="applyTheme('custom')">
+    <div class="dot"></div> Custom Mode
+  </div>
+
+  <!-- Hue slider (initially hidden) -->
+  <div id="hueSliderContainer">
+    <input type="range" id="hueSlider" min="0" max="360" value="270" oninput="updateHue(this.value)">
+  </div>
+</div>
+
+    <li data-tour="menu-about" onclick="window.location.href='/about.html'" style="cursor: pointer;">ℹ️ About</li>
+
+  </ul>
+</div>
+
+  <!-- Search Suggestions -->
+  <div id="suggestionsBox" class="suggestions"></div>
+
+ <!-- ✅ Welcome Banner -->
+<div id="welcomeBox" class="welcome-box">
+  <span class="close-btn">×</span>
+  <div class="welcome-title">Welcome to Zyneé!</div>
+  <div class="welcome-msg">Your Emotions, Beautifully Understood</div>
+  <div class="welcome-actions" th:if="${onboardingRequired}">
+    <button type="button" id="startTourBtn" class="welcome-action-btn start-tour">Start Tour</button>
+    <button type="button" id="skipTourBtn" class="welcome-action-btn skip-tour">Skip</button>
+  </div>
+</div>
+
+  <!-- Blocker Overlay -->
+  <div id="blocker" class="blocker"></div>
+
+  <div id="guestUpgradeOverlay" class="guest-upgrade-overlay">
+    <div class="guest-upgrade-card">
+      <button type="button" id="guestUpgradeClose" class="guest-upgrade-close">×</button>
+      <div class="guest-upgrade-title">Guest Access</div>
+      <div id="guestUpgradeMessage" class="guest-upgrade-message">
+        Log in or create an account to gain full access.
+      </div>
+      <div class="guest-upgrade-actions">
+        <a href="/login.html" class="guest-upgrade-btn login">Log In</a>
+        <a href="/signup.html" class="guest-upgrade-btn signup">Create Account</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const suggestionsData = [
+  { label: "My Journal", url: "/journal.html" },
+  { label: "View Journal Entries", url: "/view-entries" },
+  { label: "Statistics", url: "/stats.html" },
+  { label: "Add Mood", url: "/mood.html" },
+  { label: "Quick Check-In", url: "/quick-checkin.html" },
+  { label: "Affirmations", url: "/affirmation.html" },
+  { label: "Virtual Candle", url: "/candle.html" },
+  { label: "Music", url: "/music.html" },
+  { label: "Emotional Assistant", url: "/ai-assistant.html" },
+  { label: "Future Notes", url: "/future-notes.html" },
+  { label: "Insights", url: "/insights.html" },
+  { label: "Profile", url: "/profile.html" },
+  { label: "About", url: "/about.html" },
+];
+
+   function toggleSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const mainContent = document.getElementById("mainContent");
+
+  if (!sidebar.classList.contains("open")) {
+    closeAllExcept('sidebar');
+    sidebar.classList.add("open");
+    mainContent.style.marginLeft = "240px";
+    mainContent.style.width = "calc(100% - 240px)";
+  } else {
+    sidebar.classList.remove("open");
+    mainContent.style.marginLeft = "0";
+    mainContent.style.width = "100%";
+  }
+}
+
+  function expandSearch() {
+  closeAllExcept('search');
+  const suggestionsBox = document.getElementById("suggestionsBox");
+  const mainContent = document.getElementById("mainContent");
+
+  suggestionsBox.classList.add("show");
+  mainContent.style.marginTop = "130px"; // same as music.html
+}
+
+function shrinkSearch() {
+  setTimeout(() => {
+    const suggestionsBox = document.getElementById("suggestionsBox");
+    const mainContent = document.getElementById("mainContent");
+
+    suggestionsBox.classList.remove("show");
+    mainContent.style.marginTop = "60px"; // consistent default
+  }, 150);
+}
+
+  function toggleProfile() {
+    closeAllExcept('profile');
+    alert("Profile settings coming soon!");
+  }
+
+  function showSuggestions(value) {
+  const filtered = suggestionsData.filter(item =>
+    item.label.toLowerCase().includes(value.toLowerCase())
+  );
+
+  suggestionsBox.innerHTML = filtered.length
+    ? filtered.map(item => `<div data-url="${item.url}" onclick="goToSuggestion('${item.url}')">${item.label}</div>`).join("")
+    : "<div>No matches found</div>";
+}
+
+function goToSuggestion(url) {
+  suggestionsBox.classList.remove("show");
+  mainContent.classList.remove("pushed-down");
+
+  if (url.startsWith("#")) {
+    document.querySelector(url)?.scrollIntoView({ behavior: "smooth" });
+  } else {
+    window.location.href = url;
+  }
+}
+
+  function closeAllExcept(active) {
+    const sidebar = document.getElementById("sidebar");
+    const suggestionsBox = document.getElementById("suggestionsBox");
+    const mainContent = document.getElementById("mainContent");
+     const themeMenu = document.getElementById("themeMenu");
+
+    if (active !== 'sidebar') {
+      sidebar.classList.remove("open");
+      mainContent.style.marginLeft = "0";
+    mainContent.style.width = "100%";
+    }
+    if (active !== 'search') {
+      suggestionsBox.classList.remove("show");
+      mainContent.style.marginTop = "calc(60px + 0.1cm)";
+    }
+    themeMenu.classList.remove("active"); // ✅ always collapse theme options
+  }
+  
+</script>
+
+<script>
+window.ZYNEE_FIRST_LOGIN_ONBOARDING_REQUIRED = false;
+window.ZYNEE_IS_GUEST = false;
+window.ZYNEE_FORCE_DEFAULT_THEME = false;
+</script>
+
+<script th:inline="javascript">
+window.ZYNEE_FIRST_LOGIN_ONBOARDING_REQUIRED = /*[[${onboardingRequired}]]*/ false;
+window.ZYNEE_IS_GUEST = /*[[${session.isGuest == true}]]*/ false;
+window.ZYNEE_FORCE_DEFAULT_THEME = /*[[${forceDefaultTheme}]]*/ false;
+</script>
+
+<script>
+if (window.ZYNEE_FORCE_DEFAULT_THEME === true) {
+  localStorage.setItem("zyneeTheme", "default");
+  localStorage.setItem("zyneeHue", "270");
+}
+let selectedTheme = localStorage.getItem("zyneeTheme") || 'default';
+let savedHue = localStorage.getItem("zyneeHue") || '270';
+
+document.addEventListener("DOMContentLoaded", () => {
+  const hueSlider = document.getElementById("hueSlider");
+  if (hueSlider) {
+    hueSlider.value = savedHue;
+  }
+  applyTheme(selectedTheme);
+
+  // ✅ Handle sidebar margin adjustment
+  const mainContent = document.getElementById("mainContent");
+  const sidebar = document.getElementById("sidebar");
+
+  if (sidebar.classList.contains("open")) {
+    mainContent.style.marginLeft = "240px";
+    mainContent.style.width = "calc(100% - 240px)";
+  } else {
+    mainContent.style.marginLeft = "0";
+    mainContent.style.width = "100%";
+  }
+
+  // Set default top margin
+  mainContent.style.marginTop = "60px";
+
+  // ✅ Show welcome banner by default
+  const welcomeBox = document.getElementById("welcomeBox");
+  const blocker = document.getElementById("blocker");
+  const topbar = document.getElementById("topbar");
+  const closeBtn = welcomeBox.querySelector(".close-btn");
+  const startTourBtn = document.getElementById("startTourBtn");
+  const skipTourBtn = document.getElementById("skipTourBtn");
+  const guestUpgradeOverlay = document.getElementById("guestUpgradeOverlay");
+  const guestUpgradeMessage = document.getElementById("guestUpgradeMessage");
+  const guestUpgradeClose = document.getElementById("guestUpgradeClose");
+  const isFirstLoginOnboardingUser = window.ZYNEE_FIRST_LOGIN_ONBOARDING_REQUIRED === true;
+  const isGuestUser = window.ZYNEE_IS_GUEST === true;
+  const shouldShowWelcomeBanner = !sessionStorage.getItem("welcomeShown");
+
+  const dismissWelcomeBanner = () => {
+    welcomeBox.classList.add("hidden");
+    blocker.classList.add("hidden");
+    topbar.classList.add("active");
+    mainContent.style.display = "block";
+  };
+
+  const promptConsentAfterOnboardingSkip = () => {
+    if (!isFirstLoginOnboardingUser) return;
+    if (window.ZyneeOnboardingTour && typeof window.ZyneeOnboardingTour.promptForAnalysisConsent === "function") {
+      window.ZyneeOnboardingTour.promptForAnalysisConsent("welcome-skip");
+    }
+  };
+
+  const resolveRestrictedFeatureLabel = (featurePath) => {
+    const value = String(featurePath || "").toLowerCase();
+    if (value.includes("activity")) return "This action";
+    if (value.includes("ai-assistant") || value === "/ai") return "Emotional Assistant";
+    if (value.includes("insights")) return "Insights";
+    if (value.includes("stats")) return "Stats";
+    if (value.includes("future-notes")) return "Future Notes";
+    if (value.includes("profile")) return "Profile";
+    return "this feature";
+  };
+
+  const showGuestUpgradeBanner = (featurePath) => {
+    if (!isGuestUser || !guestUpgradeOverlay) return;
+    const label = resolveRestrictedFeatureLabel(featurePath);
+    if (guestUpgradeMessage) {
+      guestUpgradeMessage.textContent = `${label} is not available in Guest Mode. Log in or create an account to gain full access.`;
+    }
+    guestUpgradeOverlay.classList.add("show");
+  };
+
+  const hideGuestUpgradeBanner = () => {
+    if (!guestUpgradeOverlay) return;
+    guestUpgradeOverlay.classList.remove("show");
+  };
+
+  if (guestUpgradeClose) {
+    guestUpgradeClose.addEventListener("click", hideGuestUpgradeBanner);
+  }
+  if (guestUpgradeOverlay) {
+    guestUpgradeOverlay.addEventListener("click", (event) => {
+      if (event.target === guestUpgradeOverlay) {
+        hideGuestUpgradeBanner();
+      }
+    });
+  }
+
+  if (shouldShowWelcomeBanner) {
+    welcomeBox.classList.remove("hidden");
+    blocker.classList.remove("hidden");
+    topbar.classList.remove("active");
+    mainContent.style.display = "none";
+    sessionStorage.setItem("welcomeShown", "true");
+  } else {
+    welcomeBox.classList.add("hidden");
+    blocker.classList.add("hidden");
+    topbar.classList.add("active");
+    mainContent.style.display = "block";
+  }
+
+  if (isGuestUser) {
+    const params = new URLSearchParams(window.location.search || "");
+    if (params.get("guestRestricted") === "true") {
+      showGuestUpgradeBanner(params.get("feature"));
+      params.delete("guestRestricted");
+      params.delete("feature");
+      const queryString = params.toString();
+      const cleanUrl = `${window.location.pathname}${queryString ? `?${queryString}` : ""}${window.location.hash || ""}`;
+      window.history.replaceState({}, "", cleanUrl);
+    }
+  }
+
+  // Close logic
+  closeBtn.addEventListener("click", () => {
+    dismissWelcomeBanner();
+    if (isFirstLoginOnboardingUser) {
+      promptConsentAfterOnboardingSkip();
+    }
+  });
+  if (skipTourBtn) {
+    skipTourBtn.addEventListener("click", () => {
+      dismissWelcomeBanner();
+      promptConsentAfterOnboardingSkip();
+    });
+  }
+  if (startTourBtn) {
+    startTourBtn.addEventListener("click", () => {
+      dismissWelcomeBanner();
+      if (isFirstLoginOnboardingUser && window.ZyneeOnboardingTour && typeof window.ZyneeOnboardingTour.start === "function") {
+        window.ZyneeOnboardingTour.start();
+      }
+    });
+  }
+});
+
+</script>
+
+<script>
+
+function toggleThemeMenu() {
+  const themeMenu = document.getElementById("themeMenu");
+  themeMenu.classList.toggle("active");
+}
+
+function applyTheme(mode) {
+  const hueContainer = document.getElementById("hueSliderContainer");
+  const hueSlider = document.getElementById("hueSlider");
+
+  selectedTheme = mode;
+  document.body.classList.remove('default-mode', 'light-mode', 'dark-mode', 'custom-mode');
+  document.body.classList.add(`${mode}-mode`);
+
+  if (mode === 'custom') {
+    hueContainer.style.display = "block";
+    const hue = Number.parseInt(localStorage.getItem("zyneeHue") || (hueSlider ? hueSlider.value : "270"), 10);
+    if (hueSlider) {
+      hueSlider.value = String(Number.isNaN(hue) ? 270 : hue);
+    }
+    updateHue(Number.isNaN(hue) ? 270 : hue);
+  } else {
+    hueContainer.style.display = "none";
+    applyStaticTheme(mode);
+  }
+
+  // Save theme mode
+  localStorage.setItem("zyneeTheme", mode);
+
+  // Update UI selection
+  document.querySelectorAll(".theme-option").forEach(option => {
+    option.classList.remove("selected");
+  });
+  const selected = Array.from(document.querySelectorAll(".theme-option")).find(opt =>
+    opt.textContent.trim().toLowerCase().includes(mode)
+  );
+  if (selected) selected.classList.add("selected");
+}
+
+function applyStaticTheme(mode) {
+  document.body.style.filter = '';
+  const root = document.documentElement;
+  const elements = document.querySelectorAll(".card, .sidebar, .top-bar, .welcome-box");
+  const calendarDays = document.querySelectorAll("#miniCalendar .day");
+  const sidebar = document.getElementById("sidebar");
+
+  elements.forEach(el => {
+    el.style.color = '';
+    el.style.backgroundColor = '';
+  });
+
+  if (mode === 'default') {
+    root.style.setProperty('--bg', '');
+    root.style.setProperty('--text', '');
+    document.body.style.background = 'linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5)';
+    if (sidebar) sidebar.style.backgroundColor = "#ffffff";
+    root.style.setProperty('--card-text-color', '#1a1a1a');
+    root.style.setProperty('--ttt-symbol-color', '#1a1a1a');
+    calendarDays.forEach(day => {
+      day.style.color = "#1a1a1a";
+    });
+
+  } else if (mode === 'light') {
+    document.body.style.background = '#ffffff';
+    elements.forEach(el => {
+      el.style.backgroundColor = '#ffffff';
+    });
+    if (sidebar) sidebar.style.backgroundColor = "#ffffff";
+    root.style.setProperty('--card-text-color', '#1a1a1a');
+    root.style.setProperty('--ttt-symbol-color', '#1a1a1a');
+    calendarDays.forEach(day => {
+      day.style.color = "#1a1a1a";
+    });
+
+  } else if (mode === 'dark') {
+    document.body.style.background = '#1c1c1e';
+    elements.forEach(el => {
+      el.style.backgroundColor = '#2c2c2e';
+    });
+    if (sidebar) sidebar.style.backgroundColor = "#2c2c2e";
+    root.style.setProperty('--card-text-color', '#ffffff');
+    root.style.setProperty('--ttt-symbol-color', '#ffffff');
+    calendarDays.forEach(day => {
+      day.style.color = "#ffffff";
+    });
+  }
+}
+
+function updateHue(hueValue) {
+  if (selectedTheme !== 'custom') return;
+
+  const h = Number.parseInt(hueValue, 10);
+  const hue = Number.isNaN(h) ? 270 : h;
+  const light = 90;
+  const cardBgLightness = 80;
+  const textLightness = 12;
+
+  document.body.style.background = `hsl(${hue}, 70%, ${light}%)`;
+
+  const elements = document.querySelectorAll(".card, .sidebar, .top-bar, .welcome-box");
+  const sidebar = document.getElementById("sidebar");
+  elements.forEach(el => {
+    el.style.backgroundColor = `hsl(${hue}, 40%, ${cardBgLightness}%)`;
+    el.style.color = '';
+  });
+  if (sidebar) {
+    sidebar.style.backgroundColor = `hsl(${hue}, 40%, 80%)`;
+    sidebar.style.color = `hsl(${hue}, 20%, 20%)`;
+  }
+
+  document.documentElement.style.setProperty('--card-text-color', `hsl(${hue}, 35%, ${textLightness}%)`);
+  document.documentElement.style.setProperty('--ttt-symbol-color', `hsl(${hue}, 35%, ${textLightness}%)`);
+  document.querySelectorAll("#miniCalendar .day").forEach(day => {
+    day.style.color = `hsl(${hue}, 35%, ${textLightness}%)`;
+  });
+
+  // ✅ Persist hue
+  localStorage.setItem("zyneeHue", String(hue));
+}
+
+let displayedMonth = new Date().getMonth();
+let displayedYear = new Date().getFullYear();
+
+let calendarYear, calendarMonth;
+
+function scheduleMidnightRefresh() {
+  const now = new Date();
+  const msUntilMidnight = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+    0, 0, 1
+  ) - now;
+
+  setTimeout(() => {
+    const current = new Date();
+    calendarYear = current.getFullYear();
+    calendarMonth = current.getMonth();
+    renderCalendar(calendarYear, calendarMonth);
+
+    // Update dropdowns if visible
+    const yearSelect = document.getElementById("yearSelect");
+    const monthSelect = document.getElementById("monthSelect");
+    if (yearSelect && monthSelect) {
+      yearSelect.value = calendarYear;
+      monthSelect.value = calendarMonth;
+    }
+
+    scheduleMidnightRefresh(); // 🔁 schedule again
+  }, msUntilMidnight);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const now = new Date();
+  calendarYear = now.getFullYear();
+  calendarMonth = now.getMonth();
+
+  populateMonthYearPicker();
+  renderCalendar(calendarYear, calendarMonth);
+
+  scheduleMidnightRefresh();
+});
+
+function renderCalendar(year, month) {
+  const container = document.getElementById("miniCalendar");
+  const monthYearTitle = document.getElementById("monthYearTitle");
+  container.innerHTML = "";
+  const today = new Date();
+  const currentDay = today.getDate();
+  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  dayNames.forEach(day => {
+    const el = document.createElement('div');
+    el.className = 'day-name';
+    el.textContent = day;
+    container.appendChild(el);
+  });
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const display = document.getElementById("monthYearDisplay");
+  display.textContent = `${monthNames[month]} ${year}`;
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement('div');
+    container.appendChild(empty);
+  }
+
+  for (let i = 1; i <= daysInMonth; i++) {
+    const dayEl = document.createElement('div');
+    dayEl.className = 'day';
+    if (isCurrentMonth && i === currentDay) {
+      dayEl.classList.add('today');
+    }
+
+    const selectedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+    dayEl.textContent = i;
+    dayEl.onclick = () => window.location.href = `/journal.html?date=${selectedDate}`;
+
+    container.appendChild(dayEl);
+  }
+
+  const monthName = new Date(year, month).toLocaleString('default', { month: 'long' });
+  monthYearTitle.textContent = `${monthName} ${year}`;
+  document.getElementById("monthLabel").textContent = monthName;
+document.getElementById("yearLabel").textContent = year;
+
+}
+
+function prevMonth() {
+  calendarMonth--;
+  if (calendarMonth < 0) {
+    calendarMonth = 11;
+    calendarYear--;
+  }
+  renderCalendar(calendarYear, calendarMonth);
+}
+
+function nextMonth() {
+  calendarMonth++;
+  if (calendarMonth > 11) {
+    calendarMonth = 0;
+    calendarYear++;
+  }
+  renderCalendar(calendarYear, calendarMonth);
+}
+
+function toggleMonthYearPicker() {
+  const picker = document.getElementById("monthYearPicker");
+  picker.style.display = picker.style.display === "none" ? "block" : "none";
+}
+function showMonthSelector() {
+  document.getElementById("monthSelect").focus();
+}
+
+function showYearSelector() {
+  document.getElementById("yearSelect").focus();
+}
+
+function populateMonthYearPicker() {
+  const monthSelect = document.getElementById("monthSelect");
+  const yearSelect = document.getElementById("yearSelect");
+
+  const currentYear = new Date().getFullYear();
+  for (let y = currentYear; y >= currentYear - 10; y--) {
+    const opt = document.createElement("option");
+    opt.value = y;
+    opt.text = y;
+    yearSelect.appendChild(opt);
+  }
+
+  const months = [...Array(12).keys()].map(i => new Date(0, i).toLocaleString('default', { month: 'long' }));
+  months.forEach((m, i) => {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.text = m;
+    monthSelect.appendChild(opt);
+  });
+
+  yearSelect.value = calendarYear;
+  monthSelect.value = calendarMonth;
+}
+
+function updateCalendarFromPicker() {
+  const year = parseInt(document.getElementById("yearSelect").value);
+  const month = parseInt(document.getElementById("monthSelect").value);
+  calendarYear = year;
+  calendarMonth = month;
+  renderCalendar(calendarYear, calendarMonth);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const moodSlider = document.getElementById("moodSlider");
+  const moodLabel = document.getElementById("moodLabel");
+
+  const moods = {
+    1: "😢",
+    2: "😟",
+    3: "😐",
+    4: "🙂",
+    5: "😄"
+  };
+
+  moodSlider.addEventListener("input", function () {
+    moodLabel.textContent = `Mood Level: ${moods[moodSlider.value]}`;
+
+    function resetAllGames(except) {
+  if (except !== 'rps') {
+    document.getElementById("gameView").style.display = "none";
+    document.getElementById("defaultView").style.display = "block";
+  }
+
+  if (except !== 'ttt') {
+    document.getElementById("tttGame").style.display = "none";
+    document.getElementById("tttStartView").style.display = "block";
+    gameOver = true; // stop ttt game
+  }
+}
+
+  });
+});
+</script>
+
+  <!-- Main Dashboard Content -->
+<main id="mainContent" class="container-fluid py-4">
+  <div class="container">
+  <div class="row gy-4 mb-4"> <!-- ⬅️ gy-5 increases vertical gap between rows -->
+
+    <div class="col-12 mb-4 widget-item" data-widget-id="journal" data-widget-group="large" onclick="window.location.href='/journal.html'" style="cursor: pointer;">
+  <div class="card shadow-sm rounded-4 p-4 d-flex flex-column align-items-center"
+       style="max-width: calc(100% - 60px); margin: 0 auto;">
+   <h3>📝 My Journal</h3>
+<div class="calendar-header d-flex justify-content-between align-items-center w-100 mb-2 d-none">
+  <div class="d-flex align-items-center gap-1" style="cursor: default;">
+  <span id="monthLabel" style="cursor: pointer; font-weight: 600;" onclick="showMonthSelector()"></span>
+  <span id="yearLabel" style="cursor: pointer; font-weight: 600;" onclick="showYearSelector()"></span>
+</div>
+
+</div>
+<div id="monthYearPicker" class="mt-2" style="display: none;">
+  <select id="yearSelect" class="form-select form-select-sm mb-1" onchange="updateCalendarFromPicker()"></select>
+  <select id="monthSelect" class="form-select form-select-sm" onchange="updateCalendarFromPicker()"></select>
+</div>
+<div id="calendarHeader" class="d-flex justify-content-center align-items-center my-3">
+  <h5 id="monthYearDisplay" class="card-title mb-0"></h5>
+</div>
+
+<div id="miniCalendar"></div>
+
+  </div>
+</div>
+
+<div class="col-12 mb-4 widget-item" data-widget-id="stats" data-widget-group="large" onclick="window.location.href='/stats.html'" style="cursor: pointer;">
+  <div class="card shadow-sm rounded-4 p-4 d-flex flex-column align-items-center"
+       style="max-width: calc(100% - 60px); margin: 0 auto;">
+       
+    <h3 class="mb-2">📊 Stats</h3>
+    <p>Mood trend this week</p>
+
+    <!-- Centered Graph with vertical spacing -->
+    <div class="d-flex justify-content-center align-items-center w-100" style="height: 260px;">
+      <canvas id="moodChart" style="width: 100%; max-width: 500px; height: 160px;"></canvas>
+    </div>
+
+  </div>
+</div>
+<!-- Small Widgets -->
+<div id="smallWidgets" class="col-12">
+  <div class="row g-4 mt-2 widget-zone" data-widget-group="small">
+
+    <!-- Mood Tracker Card -->
+    <div class="col-6 d-flex justify-content-center widget-item" data-widget-id="mood" data-widget-group="small">
+      <div class="card square-card shadow-sm rounded-4 p-4 d-flex flex-column align-items-center"
+           onclick="window.location.href='/mood.html'" style="cursor: pointer; width: 100%;">
+        <h3 class="mb-2">😊 Mood Tracker</h3>
+        <p>Track how you’re feeling</p>
+        <div id="moodEmojiBar" class="d-flex justify-content-between w-100 px-2 mb-3" style="font-size: 1.6rem;">
+          <span style="color:#3498db;">😢</span>
+          <span style="color:#9b59b6;">😟</span>
+          <span style="color:#7f8c8d;">😐</span>
+          <span style="color:#f1c40f;">🙂</span>
+          <span style="color:#2ecc71;">😄</span>
+        </div>
+        <input type="range" min="1" max="5" value="3" id="moodSlider"
+               class="form-range mood-slider" style="width: 100%;">
+        <div id="moodLabel" class="mt-2 fw-semibold">Mood Level: 😐</div>
+      </div>
+    </div>
+
+    <!-- Candle -->
+    <div class="col-6 d-flex justify-content-center widget-item" data-widget-id="candle" data-widget-group="small">
+      <div class="card square-card shadow-sm rounded-4 p-4" onclick="window.location.href='/candle.html'" style="cursor: pointer; width: 100%;">
+        <h3>🕯️ Virtual Candle</h3>
+        <p>Light a virtual candle and relax your mind.</p>
+        <div class="candle-wrapper mt-3">
+          <div class="candle-flame lit"></div>
+          <div class="candle-body"><div class="wick"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mood Forecast Card -->
+    <div class="col-6 d-flex justify-content-center widget-item" data-widget-id="forecast" data-widget-group="small">
+      <div id="moodForecastCard" class="card square-card shadow-sm rounded-4 p-4 d-flex flex-column align-items-center"
+           style="cursor: default; width: 100%;">
+        <h3 class="mb-1">🧠 Mood Forecast</h3>
+        <p class="mb-2">Based on moods, journals, and check-ins.</p>
+        <div class="w-100 text-center">
+          <div class="forecast-pill mb-2">Today: <span id="todayMoodWord">-</span></div>
+          <div id="todayMoodConfidence" class="forecast-conf">Confidence: -</div>
+          <div class="forecast-pill mt-3 mb-2">Tomorrow: <span id="tomorrowMoodWord">-</span></div>
+          <div id="tomorrowMoodConfidence" class="forecast-conf">Confidence: -</div>
+        </div>
+        <div id="moodForecastMeta" class="mt-2 text-center"></div>
+      </div>
+    </div>
+
+    <!-- Cosmic Slot (content interchanged with quick check-in) -->
+    <div class="col-6 d-flex justify-content-center widget-item" data-widget-id="cosmic" data-widget-group="small">
+      <div class="card square-card quick-checkin-launcher shadow-sm rounded-4 p-4 d-flex flex-column align-items-center justify-content-center"
+           onclick="window.location.href='/quick-checkin.html'" style="cursor: pointer; width: 100%;">
+        <h3 class="quick-checkin-title mb-2">⚡️ Quick Check-In</h3>
+        <p class="quick-checkin-subtitle mb-3">Take a short check-in to log how you feel.</p>
+        <button class="cute-button" type="button">Open</button>
+      </div>
+    </div>
+
+
+    <!-- Quick Check-In Slot (content interchanged with cosmic insights) -->
+    <div class="col-12 d-flex justify-content-center widget-item" data-widget-id="quick-checkin" data-widget-group="small">
+      <div id="cosmicInsightsCard" class="card cosmic-insights-wide shadow-sm rounded-4 p-4 d-flex flex-column align-items-center justify-content-center"
+           style="cursor: default; width: 100%;">
+        <h3 class="quick-checkin-title mb-2">🔮 Cosmic Insights</h3>
+        <p id="cosmicSunSign" class="cosmic-subline mb-2">Sun sign: -</p>
+        <div class="cosmic-insight-box">
+          <p id="cosmicVibeHeadline" class="cosmic-vibe-headline mb-2">Your daily mood note appears here.</p>
+          <p id="cosmicVibeContext" class="cosmic-vibe-context mb-0">Your insight updates each day from your horoscope and daily logs.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Affirmations -->
+    <div class="col-6 d-flex justify-content-center widget-item" data-widget-id="affirmations" data-widget-group="small">
+      <div class="card square-card shadow-sm rounded-4 p-4" onclick="window.location.href='/affirmation.html'" style="cursor: pointer; width: 100%;">
+        <h3>🌟 Affirmations</h3>
+        <p>Get a motivational affirmation to uplift your mood.</p>
+        <div class="text-center mt-3"></div>
+        <div class="text-center mt-3">
+          <button class="cute-button" onclick="window.location.href='/affirmation.html'">💖 Generate</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Music Player -->
+    <div class="col-6 d-flex justify-content-center widget-item" data-widget-id="music" data-widget-group="small">
+      <div class="card square-card shadow-sm rounded-4 p-4" onclick="window.location.href='/music.html'" style="cursor: pointer; width: 100%;">
+        <h3>🎵 Music</h3>
+        <p>Listen to calming music to soothe your mind.</p>
+        <div class="music-player-ui text-center">
+          <div class="music-info mb-2"></div>
+          <div class="player-controls d-flex justify-content-center align-items-center gap-3">
+            <button class="btn btn-sm btn-light rounded-circle shadow-sm"><i class="bi bi-skip-backward-fill"></i></button>
+            <button class="btn btn-sm btn-light rounded-circle shadow-sm"><i class="bi bi-play-fill"></i></button>
+            <button class="btn btn-sm btn-light rounded-circle shadow-sm"><i class="bi bi-skip-forward-fill"></i></button>
+          </div>
+          <div class="progress mt-3" style="height: 4px;"><div class="progress-bar bg-info" role="progressbar" style="width: 40%"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- RPS Card -->
+<div class="col-6 d-flex justify-content-center widget-item" data-widget-id="rps" data-widget-group="large">
+  <div class="card square-card shadow-sm rounded-4 p-4 text-center w-100">
+    <h3 class="mb-2">🪨📄✂️ RPS Challenge</h3>
+    <div id="rpsDefault">
+      <div class="vs-text">🧑 vs 🤖</div>
+      <button class="cute-button" onclick="startRPSGame()">🎮 Start Game</button>
+    </div>
+
+	    <div id="rpsGame" style="display: none;">
+	      <p>Round <span id="round">1</span> / 10</p>
+	      <div class="d-flex justify-content-around fs-3 mb-2">
+	        <div>🧑 <span id="userMove">❓</span></div>
+	        <div>🤖 <span id="botMove">❓</span></div>
+      </div>
+      <p id="rpsResult" class="fw-semibold"></p>
+      <div class="d-flex justify-content-around mt-2 gap-2">
+        <button class="cute-button" onclick="playRPS('rock')">✊</button>
+        <button class="cute-button" onclick="playRPS('paper')">✋</button>
+        <button class="cute-button" onclick="playRPS('scissors')">✌️</button>
+      </div>
+      <p class="fw-bold mt-3" id="finalRPSResult"></p>
+      <button class="cute-button d-none mt-2" id="replayRPS" onclick="resetRPS()">🔁 Replay</button>
+    </div>
+  </div>
+</div>
+
+	      <!-- Tic Tac Toe Card -->
+	      <div class="col-6 d-flex justify-content-center widget-item" data-widget-id="ttt" data-widget-group="large">
+	        <div class="card square-card shadow-sm rounded-4 p-4 text-center w-100">
+          <h3>⭕❌ Tic Tac Toe</h3>
+          <p>Try to beat the bot</p>
+         <button class="cute-button" id="startTTT">🎮 Start Game</button>
+          <div id="tttGame" style="display:none">
+            <div class="d-flex flex-wrap justify-content-center mt-3" id="board" style="width:240px"></div>
+            <p id="status" class="fw-bold mt-3">Your turn (X)</p>
+            <div class="d-flex justify-content-between px-2 align-items-center mt-2">
+              <button class="cute-button d-none me-2" id="replayTTT" onclick="restartTTT()">🔁 Replay</button>
+              <span class="score-board fw-medium">You: <span id="scoreX">0</span> | Bot: <span id="scoreO">0</span></span>
+            </div>
+          </div>
+	        </div>
+	      </div>
+	    </div>
+	  </main>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("startTTT").addEventListener("click", startTicTacToe);
+    const ctx = document.getElementById('moodChart').getContext('2d');
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+          label: 'Mood Level',
+          data: [2, 3, 4, 2, 5, 4, 3], // dummy values
+          fill: false,
+          borderColor: '#8b5da9',
+          backgroundColor: '#f4d9ff',
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: '#8b5da9'
+        }]
+      },
+      options: {
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+    y: {
+      min: 1,
+      max: 5,
+      ticks: {
+        stepSize: 1,
+        font: {
+      size: 20 },
+        callback: function (value) {
+          switch (value) {
+            case 1: return '😢';
+            case 2: return '😟';
+            case 3: return '😐';
+            case 4: return '🙂';
+            case 5: return '😄';
+          }
+        }
+      }
+    },
+    x: {
+    ticks: {
+      font: {
+        size: 14 // Slightly bigger X-axis day labels
+      }
+    }
+  }
+  },
+  plugins: {
+    legend: { display: false }
+  } }
+    });
+  });
+</script>
+<script>
+    // --- RPS ---
+    let round = 1, userScore = 0, botScore = 0, drawCount = 0;
+    const totalRounds = 10;
+    let rpsGameFinished = false;
+
+    function startRPSGame() {
+      round = 1;
+      userScore = 0;
+      botScore = 0;
+      drawCount = 0;
+      rpsGameFinished = false;
+      document.getElementById("rpsDefault").style.display = "none";
+      document.getElementById("rpsGame").style.display = "block";
+      document.getElementById("round").innerText = round;
+      document.getElementById("userMove").innerText = "❓";
+      document.getElementById("botMove").innerText = "❓";
+      document.getElementById("rpsResult").innerText = "";
+      document.getElementById("finalRPSResult").innerText = "";
+      document.getElementById("replayRPS").classList.add("d-none");
+    }
+
+    function playRPS(userMove) {
+      if (rpsGameFinished) return;
+
+      const options = ["rock", "paper", "scissors"];
+      const botMove = options[Math.floor(Math.random() * 3)];
+      const emoji = { rock: "✊", paper: "✋", scissors: "✌️" };
+
+      document.getElementById("userMove").innerText = emoji[userMove];
+      document.getElementById("botMove").innerText = emoji[botMove];
+
+      let result = "Draw!";
+      if (
+        (userMove === "rock" && botMove === "scissors") ||
+        (userMove === "paper" && botMove === "rock") ||
+        (userMove === "scissors" && botMove === "paper")
+      ) {
+        result = "You Win!";
+        userScore++;
+      } else if (userMove !== botMove) {
+        result = "Bot Wins!";
+        botScore++;
+      } else {
+        drawCount++;
+      }
+
+      document.getElementById("rpsResult").innerText = result;
+
+      if (round < totalRounds) {
+        round++;
+        document.getElementById("round").innerText = round;
+      } else {
+        rpsGameFinished = true;
+        let finalMessage = "🤝 It's a Draw!";
+        if (userScore > botScore) {
+          finalMessage = "🎉 You Won!";
+        } else if (botScore > userScore) {
+          finalMessage = "😅 Bot Wins!";
+        }
+        document.getElementById("finalRPSResult").innerText = `${finalMessage} (You: ${userScore} | Bot: ${botScore} | Draws: ${drawCount})`;
+        document.getElementById("replayRPS").classList.remove("d-none");
+      }
+    }
+
+    function resetRPS() {
+      document.getElementById("rpsGame").style.display = "none";
+      document.getElementById("rpsDefault").style.display = "block";
+      document.getElementById("replayRPS").classList.add("d-none");
+    }
+
+    // --- TTT ---
+    let tttBoard = Array(9).fill("");
+    let currentPlayer = "X";
+    let gameOver = false, scoreX = 0, scoreO = 0;
+
+    function renderTttBoard(cellSizePx) {
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement("div");
+        cell.className = "border d-flex align-items-center justify-content-center";
+        cell.style.width = `${cellSizePx}px`;
+        cell.style.height = `${cellSizePx}px`;
+        cell.style.fontSize = "2rem";
+        cell.dataset.index = i;
+        cell.style.cursor = "pointer";
+        cell.addEventListener("click", handleMove);
+        board.appendChild(cell);
+      }
+    }
+
+    function startTicTacToe() {
+      document.getElementById("startTTT").style.display = "none";
+      document.getElementById("tttGame").style.display = "block";
+      document.getElementById("rpsGame").style.display = "none";
+      document.getElementById("rpsDefault").style.display = "block";
+
+      tttBoard = Array(9).fill("");
+      gameOver = false;
+      currentPlayer = "X";
+      document.getElementById("status").innerText = "Your turn (X)";
+      document.getElementById("replayTTT").classList.add("d-none");
+      renderTttBoard(70);
+    }
+
+    function restartTTT() {
+      document.getElementById("tttGame").style.display = "none";
+      document.getElementById("startTTT").style.display = "inline-block";
+      tttBoard = Array(9).fill("");
+      gameOver = false;
+      currentPlayer = "X";
+      document.getElementById("status").innerText = "Your turn (X)";
+      document.getElementById("replayTTT").classList.add("d-none");
+      renderTttBoard(70);
+    }
+
+    function handleMove(e) {
+      const i = Number(e.target.dataset.index);
+      if (tttBoard[i] || gameOver) return;
+
+      tttBoard[i] = currentPlayer;
+      e.target.innerText = currentPlayer;
+
+      if (checkWin(currentPlayer)) {
+        document.getElementById("status").innerText = currentPlayer === "X" ? "You win! 🎉" : "Bot wins! 😔";
+        if (currentPlayer === "X") {
+          document.getElementById("scoreX").innerText = ++scoreX;
+        } else {
+          document.getElementById("scoreO").innerText = ++scoreO;
+        }
+        gameOver = true;
+        document.getElementById("replayTTT").classList.remove("d-none");
+        return;
+      }
+
+      if (!tttBoard.includes("")) {
+        document.getElementById("status").innerText = "It's a draw! 🤝";
+        gameOver = true;
+        document.getElementById("replayTTT").classList.remove("d-none");
+        return;
+      }
+
+      currentPlayer = currentPlayer === "X" ? "O" : "X";
+      document.getElementById("status").innerText = currentPlayer === "X" ? "Your turn (X)" : "Bot's turn (O)";
+      if (currentPlayer === "O") setTimeout(botMove, 450);
+    }
+
+    function botMove() {
+      if (gameOver) return;
+
+      const bestMove = getBestMove();
+      tttBoard[bestMove] = "O";
+
+      const cell = document.querySelector(`[data-index='${bestMove}']`);
+      if (cell) cell.innerText = "O";
+
+      if (checkWin("O")) {
+        document.getElementById("status").innerText = "Bot wins! 😔";
+        scoreO++;
+        document.getElementById("scoreO").innerText = scoreO;
+        gameOver = true;
+        document.getElementById("replayTTT").classList.remove("d-none");
+        return;
+      }
+
+      if (!tttBoard.includes("")) {
+        document.getElementById("status").innerText = "It's a draw! 🤝";
+        gameOver = true;
+        document.getElementById("replayTTT").classList.remove("d-none");
+        return;
+      }
+
+      currentPlayer = "X";
+      document.getElementById("status").innerText = "Your turn (X)";
+    }
+
+    function getBestMove() {
+      for (let i = 0; i < tttBoard.length; i++) {
+        if (!tttBoard[i]) {
+          tttBoard[i] = "O";
+          if (checkWin("O")) {
+            tttBoard[i] = "";
+            return i;
+          }
+          tttBoard[i] = "";
+        }
+      }
+
+      for (let i = 0; i < tttBoard.length; i++) {
+        if (!tttBoard[i]) {
+          tttBoard[i] = "X";
+          if (checkWin("X")) {
+            tttBoard[i] = "";
+            return i;
+          }
+          tttBoard[i] = "";
+        }
+      }
+
+      if (!tttBoard[4]) return 4;
+      const corners = [0, 2, 6, 8].filter(i => !tttBoard[i]);
+      if (corners.length) return corners[Math.floor(Math.random() * corners.length)];
+      const sides = [1, 3, 5, 7].filter(i => !tttBoard[i]);
+      if (sides.length) return sides[Math.floor(Math.random() * sides.length)];
+      return tttBoard.findIndex(cell => !cell);
+    }
+
+    function checkWin(p) {
+      const winCombos = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+      ];
+      return winCombos.some(combo => combo.every(i => tttBoard[i] === p));
+    }
+
+  </script>
+<script id="widgetCustomizerScript">
+(function () {
+  const defaults = {
+    large: ["journal", "stats", "rps", "ttt"],
+    small: ["mood", "candle", "forecast", "cosmic", "quick-checkin", "affirmations", "music"]
+  };
+
+  let editMode = false;
+  let largeSortable = null;
+  let smallSortable = null;
+
+  function getStorageKey() {
+    const companionCfg = document.getElementById("floatingCompanionConfig");
+    const userId = (companionCfg && companionCfg.dataset && companionCfg.dataset.userId) || "guest";
+    return `zynee_home_widgets::${String(userId).trim() || "guest"}`;
+  }
+
+  function getLargeContainer() {
+    return document.querySelector("#mainContent .container .row.gy-4.mb-4");
+  }
+
+  function getSmallContainer() {
+    return document.querySelector("#smallWidgets .widget-zone");
+  }
+
+  function getOrder(container, group) {
+    if (!container) return [];
+    return Array.from(container.querySelectorAll(`.widget-item[data-widget-group='${group}']`))
+      .map(item => item.dataset.widgetId)
+      .filter(Boolean);
+  }
+
+  function applyOrder(container, group, order) {
+    if (!container || !Array.isArray(order)) return;
+
+    const selector = `.widget-item[data-widget-group='${group}']`;
+    const current = Array.from(container.querySelectorAll(selector));
+    if (!current.length) return;
+
+    const byId = new Map(current.map((node) => [node.dataset.widgetId, node]));
+    const ordered = [];
+
+    order.forEach((id) => {
+      const node = byId.get(id);
+      if (node) {
+        ordered.push(node);
+        byId.delete(id);
+      }
+    });
+
+    current.forEach((node) => {
+      const id = node.dataset.widgetId;
+      if (id && byId.has(id)) {
+        ordered.push(node);
+        byId.delete(id);
+      }
+    });
+
+    const placeholders = current.map((node) => {
+      const placeholder = document.createComment(`widget-slot-${group}`);
+      container.insertBefore(placeholder, node);
+      node.remove();
+      return placeholder;
+    });
+
+    placeholders.forEach((placeholder, index) => {
+      const node = ordered[index];
+      if (node) {
+        container.insertBefore(node, placeholder);
+      }
+      placeholder.remove();
+    });
+  }
+
+  function saveLayout() {
+    const largeContainer = getLargeContainer();
+    const smallContainer = getSmallContainer();
+    const payload = {
+      large: getOrder(largeContainer, "large"),
+      small: getOrder(smallContainer, "small")
+    };
+    localStorage.setItem(getStorageKey(), JSON.stringify(payload));
+  }
+
+  function loadLayout() {
+    const raw = localStorage.getItem(getStorageKey());
+    if (!raw) {
+      applyDefaultLayout();
+      return;
+    }
+
+    try {
+      const saved = JSON.parse(raw);
+      const largeContainer = getLargeContainer();
+      const smallContainer = getSmallContainer();
+
+      const normalizeOrder = function (value, defaultOrder) {
+        if (!Array.isArray(value)) return defaultOrder;
+
+        const ordered = [...new Set(value)].filter((id) => defaultOrder.includes(id));
+
+        defaultOrder.forEach((id, defaultIndex) => {
+          if (ordered.includes(id)) {
+            return;
+          }
+
+          let inserted = false;
+          for (let i = defaultIndex + 1; i < defaultOrder.length; i++) {
+            const nextId = defaultOrder[i];
+            const existingIdx = ordered.indexOf(nextId);
+            if (existingIdx !== -1) {
+              ordered.splice(existingIdx, 0, id);
+              inserted = true;
+              break;
+            }
+          }
+
+          if (!inserted) {
+            ordered.push(id);
+          }
+        });
+
+        const enforceBefore = function (item, target) {
+          const from = ordered.indexOf(item);
+          const to = ordered.indexOf(target);
+          if (from !== -1 && to !== -1 && from > to) {
+            ordered.splice(from, 1);
+            ordered.splice(to, 0, item);
+          }
+        };
+
+        enforceBefore("quick-checkin", "affirmations");
+        enforceBefore("quick-checkin", "music");
+
+        return ordered.length ? ordered : defaultOrder;
+      };
+
+      const largeOrder = normalizeOrder(saved.large, defaults.large);
+      const smallOrder = normalizeOrder(saved.small, defaults.small);
+
+      applyOrder(largeContainer, "large", largeOrder);
+      applyOrder(smallContainer, "small", smallOrder);
+    } catch (error) {
+      applyDefaultLayout();
+    }
+  }
+
+  function applyDefaultLayout() {
+    const largeContainer = getLargeContainer();
+    const smallContainer = getSmallContainer();
+    applyOrder(largeContainer, "large", defaults.large);
+    applyOrder(smallContainer, "small", defaults.small);
+  }
+
+  function setEditMode(enabled) {
+    editMode = Boolean(enabled);
+    document.body.classList.toggle("widgets-editing", editMode);
+
+    if (largeSortable) {
+      largeSortable.option("disabled", !editMode);
+    }
+    if (smallSortable) {
+      smallSortable.option("disabled", !editMode);
+    }
+
+    const editButton = document.getElementById("editWidgetsAction");
+    if (editButton) {
+      editButton.textContent = editMode ? "Done Editing" : "Edit Widgets";
+    }
+  }
+
+  function initSortables() {
+    if (!window.Sortable) {
+      return;
+    }
+
+    const largeContainer = getLargeContainer();
+    const smallContainer = getSmallContainer();
+
+    if (largeContainer) {
+      largeSortable = new Sortable(largeContainer, {
+        animation: 160,
+        draggable: ".widget-item[data-widget-group='large']",
+        disabled: true,
+        ghostClass: "widget-ghost",
+        chosenClass: "widget-chosen",
+        dragClass: "widget-dragging",
+        onEnd: saveLayout
+      });
+    }
+
+    if (smallContainer) {
+      smallSortable = new Sortable(smallContainer, {
+        animation: 160,
+        draggable: ".widget-item[data-widget-group='small']",
+        disabled: true,
+        ghostClass: "widget-ghost",
+        chosenClass: "widget-chosen",
+        dragClass: "widget-dragging",
+        onEnd: saveLayout
+      });
+    }
+  }
+
+  function initWidgetEditorMenu() {
+    const toggleBtn = document.getElementById("widgetEditToggle");
+    const menu = document.getElementById("widgetEditMenu");
+    const editBtn = document.getElementById("editWidgetsAction");
+    const resetBtn = document.getElementById("resetWidgetsAction");
+
+    if (!toggleBtn || !menu || !editBtn || !resetBtn) {
+      return;
+    }
+
+    toggleBtn.addEventListener("click", function (event) {
+      event.stopPropagation();
+      menu.classList.toggle("show");
+    });
+
+    editBtn.addEventListener("click", function (event) {
+      event.stopPropagation();
+      setEditMode(!editMode);
+      menu.classList.remove("show");
+    });
+
+    resetBtn.addEventListener("click", function (event) {
+      event.stopPropagation();
+      localStorage.removeItem(getStorageKey());
+      applyDefaultLayout();
+      setEditMode(false);
+      menu.classList.remove("show");
+    });
+
+    document.addEventListener("click", function (event) {
+      if (menu.contains(event.target) || toggleBtn.contains(event.target)) {
+        return;
+      }
+
+      menu.classList.remove("show");
+
+      if (editMode && !event.target.closest(".widget-item")) {
+        setEditMode(false);
+      }
+    });
+
+    document.addEventListener("click", function (event) {
+      if (!editMode) {
+        return;
+      }
+      if (event.target.closest(".widget-item")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, true);
+  }
+
+  const DAILY_CACHE_NAMESPACE = "zynee-home-daily-v1";
+  const COSMIC_INSIGHT_SCHEMA_VERSION = 4;
+
+  function getTodayCacheKey() {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function getDailyCacheStorageKey(name) {
+    return `${DAILY_CACHE_NAMESPACE}:${name}:${getTodayCacheKey()}`;
+  }
+
+  function readDailyCache(name) {
+    try {
+      const raw = localStorage.getItem(getDailyCacheStorageKey(name));
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeDailyCache(name, value) {
+    try {
+      localStorage.setItem(getDailyCacheStorageKey(name), JSON.stringify(value));
+    } catch (error) {
+      // ignore storage issues
+    }
+  }
+
+  function clearDailyCache(name) {
+    try {
+      localStorage.removeItem(getDailyCacheStorageKey(name));
+    } catch (error) {
+      // ignore storage issues
+    }
+  }
+
+  function clearAllHomeAnalysisCaches() {
+    try {
+      Object.keys(localStorage).forEach((key) => {
+        if (!key) return;
+        if (key.startsWith(`${DAILY_CACHE_NAMESPACE}:moodForecast:`) || key.startsWith(`${DAILY_CACHE_NAMESPACE}:cosmicInsights:`)) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch (error) {
+      // ignore storage issues
+    }
+  }
+
+  async function loadMoodForecast() {
+    const todayMood = document.getElementById("todayMoodWord");
+    const todayConfidence = document.getElementById("todayMoodConfidence");
+    const tomorrowMood = document.getElementById("tomorrowMoodWord");
+    const tomorrowConfidence = document.getElementById("tomorrowMoodConfidence");
+    const meta = document.getElementById("moodForecastMeta");
+
+    if (!todayMood || !todayConfidence || !tomorrowMood || !tomorrowConfidence || !meta) {
+      return;
+    }
+
+    const renderForecast = (payload, fromCache = false) => {
+      todayMood.textContent = payload.todayMood || "-";
+      todayConfidence.textContent = `Confidence: ${Number(payload.todayConfidence || 0)}%`;
+      tomorrowMood.textContent = payload.tomorrowMood || "-";
+      tomorrowConfidence.textContent = `Confidence: ${Number(payload.tomorrowConfidence || 0)}%`;
+      meta.textContent = "";
+      meta.style.display = "none";
+    };
+
+    const consentState = localStorage.getItem("zynee_data_analysis_consent");
+    if (consentState === "declined") {
+      clearAllHomeAnalysisCaches();
+      todayMood.textContent = "-";
+      todayConfidence.textContent = "Confidence: -";
+      tomorrowMood.textContent = "-";
+      tomorrowConfidence.textContent = "Confidence: -";
+      meta.style.display = "block";
+      meta.textContent = "Analysis is disabled. Enable it in Profile > Other Settings.";
+      return;
+    }
+
+    const cached = readDailyCache("moodForecast");
+    if (cached) {
+      renderForecast(cached, true);
+    }
+
+    try {
+      const response = await fetch(`/api/mood-forecast?t=${Date.now()}`, { cache: "no-store" });
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        if (cached) {
+          return;
+        }
+        todayMood.textContent = "-";
+        todayConfidence.textContent = "Confidence: -";
+        tomorrowMood.textContent = "-";
+        tomorrowConfidence.textContent = "Confidence: -";
+        meta.style.display = "block";
+        meta.textContent = data.error || "Could not load forecast.";
+        return;
+      }
+
+      if (data.analysisDisabled) {
+        clearAllHomeAnalysisCaches();
+        localStorage.setItem("zynee_data_analysis_consent", "declined");
+        todayMood.textContent = "-";
+        todayConfidence.textContent = "Confidence: -";
+        tomorrowMood.textContent = "-";
+        tomorrowConfidence.textContent = "Confidence: -";
+        meta.style.display = "block";
+        meta.textContent = data.message || "Analysis is disabled. Enable it in Profile > Other Settings.";
+        return;
+      }
+
+      if (!data.forecastAvailable) {
+        clearDailyCache("moodForecast");
+        todayMood.textContent = "-";
+        todayConfidence.textContent = "Confidence: -";
+        tomorrowMood.textContent = "-";
+        tomorrowConfidence.textContent = "Confidence: -";
+        meta.style.display = "block";
+        meta.textContent = data.message || "Add more mood history to unlock forecasting.";
+        return;
+      }
+
+      const payload = {
+        todayMood: data.todayMood || "-",
+        todayConfidence: Number(data.todayConfidence || 0),
+        tomorrowMood: data.tomorrowMood || "-",
+        tomorrowConfidence: Number(data.tomorrowConfidence || 0),
+        source: data.source ? String(data.source) : "analysis",
+        logsUsed: Number(data.logsUsed || 0),
+        signalCounts: data.signalCounts || null,
+      };
+      localStorage.setItem("zynee_data_analysis_consent", "allowed");
+      writeDailyCache("moodForecast", payload);
+      renderForecast(payload, false);
+    } catch (error) {
+      if (cached) {
+        return;
+      }
+      todayMood.textContent = "-";
+      todayConfidence.textContent = "Confidence: -";
+      tomorrowMood.textContent = "-";
+      tomorrowConfidence.textContent = "Confidence: -";
+      meta.style.display = "block";
+      meta.textContent = "Forecast service unavailable.";
+    }
+  }
+
+  async function loadCosmicInsights() {
+    const sunSign = document.getElementById("cosmicSunSign");
+    const headlineEl = document.getElementById("cosmicVibeHeadline");
+    const contextEl = document.getElementById("cosmicVibeContext");
+
+    if (!sunSign || !headlineEl || !contextEl) {
+      return;
+    }
+
+    const normalizeHeadline = (value, fallback) => {
+      const clean = String(value || "")
+        .replace(/[^\w\s.,!?'-]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!clean) {
+        return fallback;
+      }
+      if (/embers of turbulence/i.test(clean)) {
+        return fallback;
+      }
+      const noTrail = clean.replace(/[.!?]+$/, "");
+      const words = noTrail.split(" ").filter(Boolean).slice(0, 6);
+      const weakTailWords = new Set(["a", "an", "the", "of", "and", "to", "for", "with", "in", "on", "at"]);
+      while (words.length > 2 && weakTailWords.has(String(words[words.length - 1]).toLowerCase())) {
+        words.pop();
+      }
+      const headline = words.join(" ").trim();
+      if (headline.length < 5) {
+        return fallback;
+      }
+      return headline || fallback;
+    };
+
+    const normalizeContext = (value, fallback) => {
+      const clean = String(value || "")
+        .replace(/[^\w\s.,!?'-]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!clean) {
+        return fallback;
+      }
+      if (/embers of turbulence/i.test(clean)) {
+        return fallback;
+      }
+      const clipped = clean.length > 140 ? clean.slice(0, 140).trim() : clean;
+      const words = clipped.split(" ").filter(Boolean).slice(0, 22);
+      const compact = words.join(" ").trim();
+      if (!compact) {
+        return fallback;
+      }
+      if (/[.!?]$/.test(compact)) {
+        return compact;
+      }
+      return `${compact}.`;
+    };
+
+    const renderCosmic = (payload) => {
+      sunSign.textContent = `Sun sign: ${payload.sunSign || "Unknown"}`;
+      headlineEl.textContent = normalizeHeadline(payload.headline, "Starry Mood Glow");
+      contextEl.textContent = normalizeContext(payload.context, "Today asks for a soft and steady pace with yourself.");
+    };
+
+    const consentState = localStorage.getItem("zynee_data_analysis_consent");
+    if (consentState === "declined") {
+      clearAllHomeAnalysisCaches();
+      sunSign.textContent = "Sun sign: -";
+      headlineEl.textContent = "Analysis Disabled";
+      contextEl.textContent = "Enable data analysis in Profile > Other Settings to get cosmic insights.";
+      return;
+    }
+
+    const cached = readDailyCache("cosmicInsights");
+    const hasValidCachedInsight = Boolean(
+      cached
+      && Number(cached.schemaVersion || 0) === COSMIC_INSIGHT_SCHEMA_VERSION
+      && String(cached.headline || "").trim()
+      && String(cached.context || "").trim()
+    );
+    if (hasValidCachedInsight) {
+      renderCosmic(cached);
+    }
+
+    try {
+      const response = await fetch(`/api/insights/summary?t=${Date.now()}`, { cache: "no-store" });
+      const data = await response.json();
+      const cosmic = data && data.cosmicInsights ? data.cosmicInsights : null;
+      if (data && data.analysisDisabled) {
+        clearAllHomeAnalysisCaches();
+        localStorage.setItem("zynee_data_analysis_consent", "declined");
+        sunSign.textContent = "Sun sign: -";
+        headlineEl.textContent = "Analysis Disabled";
+        contextEl.textContent = data.message || "Enable data analysis in Profile > Other Settings to get cosmic insights.";
+        return;
+      }
+
+      if (!response.ok || data.error || !cosmic) {
+        if (data && data.noData) {
+          clearDailyCache("cosmicInsights");
+          sunSign.textContent = "Sun sign: -";
+          headlineEl.textContent = "Need More Logs";
+          contextEl.textContent = "Add a journal and quick check-in to personalize today's simple cosmic insight.";
+          return;
+        }
+
+        if (hasValidCachedInsight) {
+          return;
+        }
+        sunSign.textContent = "Sun sign: -";
+        headlineEl.textContent = "Need More Logs";
+        contextEl.textContent = "Add a journal and quick check-in to personalize today's simple cosmic insight.";
+        return;
+      }
+
+      const payload = {
+        schemaVersion: COSMIC_INSIGHT_SCHEMA_VERSION,
+        sunSign: cosmic.sunSign || "Unknown",
+        headline: cosmic.dailyVibe || cosmic.mood || "",
+        context: cosmic.dailyContext || cosmic.guidance || cosmic.feeling || "",
+      };
+      localStorage.setItem("zynee_data_analysis_consent", "allowed");
+      writeDailyCache("cosmicInsights", payload);
+      renderCosmic(payload);
+    } catch (error) {
+      if (cached) {
+        return;
+      }
+      sunSign.textContent = "Sun sign: -";
+      headlineEl.textContent = "Cosmic Pause";
+      contextEl.textContent = "We could not load today's insight right now. Please try again in a moment.";
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    applyDefaultLayout();
+    loadLayout();
+    initSortables();
+    initWidgetEditorMenu();
+    loadMoodForecast();
+    loadCosmicInsights();
+    setEditMode(false);
+  });
+})();
+</script>
+
+<script id="sessionBackGuard">
+(function () {
+  function needsRefresh() {
+    var nav = (performance.getEntriesByType && performance.getEntriesByType("navigation")) || [];
+    return nav.length > 0 && nav[0].type === "back_forward";
+  }
+
+  window.addEventListener("pageshow", function (event) {
+    if (event.persisted || needsRefresh()) {
+      window.location.reload();
+    }
+  });
+})();
+</script>
+<div id="floatingCompanionConfig"
+     th:if="${session.email != null}"
+     th:attr="data-session-key=${session.assistantSessionKey},data-user-id=${session.userId},data-user-name=${session.name},data-country-code=${session.countryCode}"
+     style="display:none;"></div>
+<script src="/js/onboarding-tour.js"></script>
+<script src="/js/future-note-notifier.js"></script>
+<script src="/js/floating-companion.js"></script>
+</body>
+</html>

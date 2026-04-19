@@ -1,0 +1,176 @@
+/* Top Bar */
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 60px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.2rem;
+  z-index: 998;
+  pointer-events: none;
+}
+
+.top-bar.active {
+  pointer-events: auto;
+}
+
+.hamburger {
+  font-size: 1.6rem;
+  background: none;
+  border: none;
+  color: #8b5da9;
+  cursor: pointer;
+}
+
+.profile-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #ccc;
+  border: 2px solid white;
+  cursor: pointer;
+}
+
+/* Search bar and suggestions */
+.search-bar {
+  width: 200px;
+  transition: width 0.3s ease;
+  padding: 6px 12px;
+  border-radius: 2rem;
+  border: 1px solid #ddd;
+  background-color: rgba(255, 255, 255, 0.85);
+  outline: none;
+}
+
+.search-bar:focus {
+  width: 300px;
+  background-color: white;
+}
+
+.suggestions {
+  position: fixed;
+  top: calc(60px + 0.1cm);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  background: white;
+  padding: 0.8rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 997;
+  display: none;
+}
+
+.suggestions.show {
+  display: block;
+}
+
+.suggestions div {
+  padding: 0.3rem 0;
+  cursor: pointer;
+}
+
+.suggestions div:hover {
+  color: #8b5da9;
+}
+
+/* Sidebar */
+.sidebar {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  width: 240px;
+  height: calc(100vh - 60px);
+  background-color: inherit;
+  box-shadow: 2px 2px 15px rgba(190, 160, 255, 0.2);
+  padding: 1rem;
+  transform: translateX(-100%);
+  transition: transform 0.4s ease;
+  z-index: 997;
+  border-top-right-radius: 1rem;
+  border-bottom-right-radius: 1rem;
+  overflow-y: auto;
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar h4 {
+  font-size: 1.4rem;
+  color: #8b5da9;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar ul li {
+  padding: 0.6rem 0;
+  color: #6b5c7d;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.sidebar ul li:hover {
+  color: #8b5da9;
+}
+
+/* Theme menu */
+.theme-options {
+  margin-top: 0.5rem;
+  margin-left: 1.2rem;
+  display: none;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: #6b5c7d;
+}
+
+.theme-options.active {
+  display: flex;
+}
+
+.theme-option {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.theme-option .dot {
+  height: 0.6rem;
+  width: 0.6rem;
+  border-radius: 50%;
+  border: 1px solid #6b5c7d;
+  background-color: transparent;
+}
+
+.theme-option.selected .dot {
+  background-color: #8b5da9;
+}
+
+/* Hue slider */
+#hueSliderContainer {
+  display: none;
+  margin-top: 1rem;
+  margin-left: 1.8rem;
+  height: 140px;
+  position: relative;
+}
+
+#hueSlider {
+  writing-mode: bt-lr;
+  -webkit-appearance: slider-vertical;
+  width: 20px;
+  height: 100%;
+  transform: rotate(180deg);
+}

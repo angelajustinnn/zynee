@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <script th:inline="javascript">
+    window.ZYNEE_IS_GUEST = /*[[${session.isGuest == true}]]*/ false;
+  </script>
+  <script src="/js/guest-access-guard.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zyneé | Profile</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/responsive.css" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+  <style>
+    :root {
+  --theme-hue: 270;
+  --bg-default: hsl(var(--theme-hue), 100%, 97%);
+  --bg-light: hsl(var(--theme-hue), 50%, 97%);
+  --bg-dark: hsl(var(--theme-hue), 30%, 8%);
+  --text-light: #ffffff;
+  --text-dark: #000000;
+}
+
+   body {
+  margin: 0;
+  padding: 3rem 1rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-family: 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+
+body.default-mode {
+  background: linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5);
+  background-size: 400% 400%;
+  animation: dreamyBG 15s ease infinite;
+}
+
+body.light-mode {
+  background-color: #ffffff;
+}
+
+body.dark-mode {
+  background-color: #1c1c1e;
+}
+
+body.custom-mode {
+  background-color: hsl(var(--theme-hue), 70%, 90%);
+}
+
+    @keyframes dreamyBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .profile-card {
+      background-color: rgba(255, 255, 255, 0.95);
+      border-radius: 2rem;
+      padding: 2.5rem;
+      box-shadow: 0 10px 40px rgba(190, 160, 255, 0.3);
+      width: 100%;
+      max-width: 520px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      position: relative;
+      margin-bottom: 3rem;
+  z-index: 1; /* Ensure this is below the logout overlay */
+}
+
+    .profile-card h2 {
+      font-size: 1.75rem;
+      font-weight: 500;
+      color: #6b5c7d;
+    }
+
+    body.light-mode .profile-card {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+body.dark-mode .profile-card {
+  background-color: #2c2c2e;
+  color: #ffffff;
+}
+
+body.custom-mode .profile-card {
+  background-color: hsl(var(--theme-hue), 40%, 90%);
+  color: hsl(var(--theme-hue), 20%, 25%);
+}
+
+    .profile-initials, .profile-pic {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+
+    .form-control, .form-select {
+      border-radius: 1.2rem;
+      border: 1px solid #e3c6f3;
+    }
+
+    .btn-save {
+      background-color: #d7a8f0;
+      color: white;
+      border-radius: 1.5rem;
+      font-weight: 500;
+    }
+
+    .btn-save:hover {
+      background-color: #c285e6;
+    }
+
+    .btn-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+    }
+    body.dark-mode .text-muted {
+  color: #cccccc !important;
+}
+
+body.custom-mode .text-muted {
+  color: hsl(var(--theme-hue), 20%, 80%) !important;
+}
+.logout-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  display: none;
+  background-color: rgba(255, 255, 255, 0.1); /* Less opaque for dreamy effect */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); /* For Safari */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#logoutCard {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  background-color: rgba(255, 255, 255, 0.85); /* fallback default */
+  color: #000;
+}
+
+body.dark-mode #logoutCard {
+  background-color: rgba(44, 44, 46, 0.9);
+  color: #fff;
+}
+
+body.custom-mode #logoutCard {
+  background-color: hsla(var(--theme-hue), 40%, 90%, 0.9);
+  color: hsl(var(--theme-hue), 20%, 25%);
+}
+
+img.profile-pic[src=""] {
+  display: none;
+}
+img.profile-pic:not([src]), 
+img.profile-pic[src="null"], 
+img.profile-pic[src*="undefined"] {
+  display: none;
+}
+
+.list-group-item[onclick] {
+  cursor: pointer;
+}
+
+  </style>
+</head>
+<body class="" id="profilePage">
+
+<div class="profile-card">
+  <button class="btn-close" onclick="window.location.href='home.html'"></button>
+  <h2 class="mb-4">My Profile</h2>
+
+  <div th:if="${profilePhoto != null and !#strings.isEmpty(profilePhoto)}">
+  <img th:src="@{${profilePhoto}}" alt="Profile Picture" class="profile-pic" style="object-fit: cover;" />
+</div>
+<!-- Fallback: show initials if photo is missing -->
+<div th:if="${profilePhoto == null or #strings.isEmpty(profilePhoto)}"
+     th:text="${initials}"
+     th:style="'background-color:' + ${profileColor}"
+     class="profile-initials">
+</div>
+
+  <form method="post" action="update-profile" enctype="multipart/form-data">
+    <div class="mb-2">
+  <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="openEditPhotoModal()">Edit</button>
+</div>
+
+<!-- Custom Edit Photo Modal -->
+<div id="editPhotoModal" class="logout-overlay" style="display: none; z-index: 9999;">
+  <div class="d-flex align-items-center justify-content-center w-100 h-100">
+    <div class="p-4 rounded-4 shadow text-center" id="editCard" style="max-width: 450px; width: 90%;
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      background-color: rgba(255, 255, 255, 0.85); color: #000;">
+
+      <h5 class="mb-3">Edit Profile Picture</h5>
+
+      <!-- Preview Section -->
+      <div class="d-flex flex-column align-items-center mb-3">
+        <div style="max-height: 300px; overflow: hidden;">
+          <img id="cropImagePreview" src="" alt="Preview" style="max-width: 100%; display: none;" />
+        </div>
+        <div id="initialsPreview"
+     th:text="${initials}"
+     th:style="'background-color:' + ${profileColor}"
+     class="profile-initials mb-2">
+</div>
+      </div>
+
+      <!-- Upload Interface -->
+      <input type="file" id="profileFileInput" class="form-control mb-3" accept="image/*" onchange="previewSelectedPhoto(this)" />
+
+      <div class="d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-danger" onclick="removePreview()">Remove Photo</button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-secondary" onclick="hideEditPhotoModal()">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="console.log('Save clicked'); uploadCroppedPhoto()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+   <div class="mb-3">
+  <input type="text" name="name" class="form-control"
+         th:value="${session.name}"
+         th:disabled="${!canEditName}" />
+  <small class="text-muted" th:text="${nameEditMessage}"></small>
+</div>
+
+    <div class="mb-3">
+      <input type="email" name="email" class="form-control" th:value="${session.email}" disabled />
+    </div>
+
+    <div class="mb-3 d-flex">
+      <select name="countryCode" class="form-select me-2" style="max-width: 240px;" required>
+        <option value="+61" th:selected="${session.countryCode == '+61'}">+61 (Australia)</option>
+        <option value="+880" th:selected="${session.countryCode == '+880'}">+880 (Bangladesh)</option>
+        <option value="+55" th:selected="${session.countryCode == '+55'}">+55 (Brazil)</option>
+        <option value="+1" th:selected="${session.countryCode == '+1'}">+1 (Canada)</option>
+        <option value="+86" th:selected="${session.countryCode == '+86'}">+86 (China)</option>
+        <option value="+57" th:selected="${session.countryCode == '+57'}">+57 (Colombia)</option>
+        <option value="+420" th:selected="${session.countryCode == '+420'}">+420 (Czechia)</option>
+        <option value="+45" th:selected="${session.countryCode == '+45'}">+45 (Denmark)</option>
+        <option value="+20" th:selected="${session.countryCode == '+20'}">+20 (Egypt)</option>
+        <option value="+251" th:selected="${session.countryCode == '+251'}">+251 (Ethiopia)</option>
+        <option value="+358" th:selected="${session.countryCode == '+358'}">+358 (Finland)</option>
+        <option value="+33" th:selected="${session.countryCode == '+33'}">+33 (France)</option>
+        <option value="+49" th:selected="${session.countryCode == '+49'}">+49 (Germany)</option>
+        <option value="+30" th:selected="${session.countryCode == '+30'}">+30 (Greece)</option>
+        <option value="+36" th:selected="${session.countryCode == '+36'}">+36 (Hungary)</option>
+        <option value="+91" th:selected="${session.countryCode == '+91'}">+91 (India)</option>
+        <option value="+62" th:selected="${session.countryCode == '+62'}">+62 (Indonesia)</option>
+        <option value="+98" th:selected="${session.countryCode == '+98'}">+98 (Iran)</option>
+        <option value="+353" th:selected="${session.countryCode == '+353'}">+353 (Ireland)</option>
+        <option value="+972" th:selected="${session.countryCode == '+972'}">+972 (Israel)</option>
+        <option value="+39" th:selected="${session.countryCode == '+39'}">+39 (Italy)</option>
+        <option value="+81" th:selected="${session.countryCode == '+81'}">+81 (Japan)</option>
+        <option value="+254" th:selected="${session.countryCode == '+254'}">+254 (Kenya)</option>
+        <option value="+60" th:selected="${session.countryCode == '+60'}">+60 (Malaysia)</option>
+        <option value="+52" th:selected="${session.countryCode == '+52'}">+52 (Mexico)</option>
+        <option value="+234" th:selected="${session.countryCode == '+234'}">+234 (Nigeria)</option>
+        <option value="+31" th:selected="${session.countryCode == '+31'}">+31 (Netherlands)</option>
+        <option value="+64" th:selected="${session.countryCode == '+64'}">+64 (New Zealand)</option>
+        <option value="+47" th:selected="${session.countryCode == '+47'}">+47 (Norway)</option>
+        <option value="+92" th:selected="${session.countryCode == '+92'}">+92 (Pakistan)</option>
+        <option value="+51" th:selected="${session.countryCode == '+51'}">+51 (Peru)</option>
+        <option value="+63" th:selected="${session.countryCode == '+63'}">+63 (Philippines)</option>
+        <option value="+48" th:selected="${session.countryCode == '+48'}">+48 (Poland)</option>
+        <option value="+351" th:selected="${session.countryCode == '+351'}">+351 (Portugal)</option>
+        <option value="+40" th:selected="${session.countryCode == '+40'}">+40 (Romania)</option>
+        <option value="+7" th:selected="${session.countryCode == '+7'}">+7 (Russia)</option>
+        <option value="+966" th:selected="${session.countryCode == '+966'}">+966 (Saudi Arabia)</option>
+        <option value="+65" th:selected="${session.countryCode == '+65'}">+65 (Singapore)</option>
+        <option value="+27" th:selected="${session.countryCode == '+27'}">+27 (South Africa)</option>
+        <option value="+82" th:selected="${session.countryCode == '+82'}">+82 (South Korea)</option>
+        <option value="+34" th:selected="${session.countryCode == '+34'}">+34 (Spain)</option>
+        <option value="+94" th:selected="${session.countryCode == '+94'}">+94 (Sri Lanka)</option>
+        <option value="+46" th:selected="${session.countryCode == '+46'}">+46 (Sweden)</option>
+        <option value="+41" th:selected="${session.countryCode == '+41'}">+41 (Switzerland)</option>
+        <option value="+66" th:selected="${session.countryCode == '+66'}">+66 (Thailand)</option>
+        <option value="+90" th:selected="${session.countryCode == '+90'}">+90 (Turkey)</option>
+        <option value="+971" th:selected="${session.countryCode == '+971'}">+971 (United Arab Emirates)</option>
+        <option value="+44" th:selected="${session.countryCode == '+44'}">+44 (United Kingdom)</option>
+        <option value="+1" th:selected="${session.countryCode == '+1'}">+1 (United States)</option>
+        <option value="+380" th:selected="${session.countryCode == '+380'}">+380 (Ukraine)</option>
+        <option value="+84" th:selected="${session.countryCode == '+84'}">+84 (Vietnam)</option>
+      </select>
+
+      <input type="tel" name="phone" class="form-control" placeholder="Phone number"
+             th:value="${session.phone}" required />
+    </div>
+
+    <div class="mb-3">
+      <input type="date" name="dob" class="form-control" th:value="${session.dob}" />
+    </div>
+
+    <div class="mb-3">
+      <select name="gender" class="form-select">
+  <option value="Female" th:selected="${session.gender == 'Female'}">Female</option>
+  <option value="Male" th:selected="${session.gender == 'Male'}">Male</option>
+  <option value="Other" th:selected="${session.gender == 'Other'}">Other</option>
+</select>
+    </div>
+
+    <button type="submit" class="btn btn-save w-100">Save Changes</button>
+    <!-- ✅ Saved Message -->
+      <div th:if="${saveSuccess}" class="mt-3 alert alert-success">
+        ✅ Your changes have been saved!
+      </div>
+  </form>
+
+  <!-- Other Settings Section -->
+  <div class="mt-4 text-start">
+    <div class="fw-bold d-flex justify-content-between align-items-center mb-2" style="cursor:pointer;" onclick="toggleSettings()">
+      Other Settings <i class="bi bi-chevron-down"></i>
+    </div>
+    <div id="otherSettings" style="display: none;">
+      <ul class="list-group list-group-flush rounded">
+        <li class="list-group-item" style="cursor:pointer;" onclick="showChangePasswordBanner()">Change Password</li>
+
+        <li class="list-group-item" style="cursor:pointer;" onclick="exportData()">Export Data</li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div>Permission for Data Analysis</div>
+            <small id="analysisConsentStatus" class="text-muted">Loading...</small>
+          </div>
+          <button type="button"
+                  id="analysisConsentToggleBtn"
+                  class="btn btn-sm btn-outline-secondary rounded-pill"
+                  onclick="toggleDataAnalysisPermission()">
+            Loading...
+          </button>
+        </li>
+        <li class="list-group-item" style="cursor:pointer;" onclick="takeTourAgain()">Take Tour Again</li>
+       <li class="list-group-item text-warning" style="cursor:pointer;" onclick="showDeleteDataBanner()">Delete All Logs (Keep Account)</li>
+<li class="list-group-item text-danger" style="cursor:pointer;" onclick="showDeleteAccountBanner()">Delete My Account Permanently</li>
+        <li class="list-group-item text-danger" style="cursor:pointer;" onclick="showLogoutBanner()">Log Out</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript for Theme and Logout Banner -->
+<script th:inline="javascript">
+  function toggleSettings() {
+    const settings = document.getElementById("otherSettings");
+    settings.style.display = settings.style.display === "none" ? "block" : "none";
+  }
+
+  function showLogoutBanner() {
+    document.getElementById("logoutBanner").style.display = "block";
+  }
+
+  function hideLogoutBanner() {
+    document.getElementById("logoutBanner").style.display = "none";
+  }
+
+  function openEditPhotoModal() {
+  const modal = document.getElementById("editPhotoModal");
+  const preview = document.getElementById("cropImagePreview");
+  const initials = document.getElementById("initialsPreview");
+
+  // Inject Thymeleaf photo path here
+  const profilePhoto = /*[[${profilePhoto}]]*/ "";
+
+  modal.style.display = "flex";
+
+  if (profilePhoto && profilePhoto.trim() !== "") {
+    preview.src = profilePhoto;
+    preview.style.display = "block";
+    initials.classList.add("d-none");
+
+    preview.onload = function () {
+      if (cropper) cropper.destroy();
+      cropper = new Cropper(preview, {
+        aspectRatio: 1,
+        viewMode: 1,
+        autoCropArea: 1,
+        dragMode: 'move',
+        zoomable: true,
+        rotatable: true
+      });
+    };
+  } else {
+    preview.src = "";
+    preview.style.display = "none";
+    initials.classList.remove("d-none");
+  }
+}
+
+function exportData() {
+  // Use direct browser navigation for file download.
+  // This avoids blob/objectURL corruption issues seen in some browsers.
+  window.location.href = `/export-data?ts=${Date.now()}`;
+}
+
+function takeTourAgain() {
+  localStorage.setItem("zyneeTourStartRequestedV2", "true");
+  window.location.href = "/home.html";
+}
+
+let dataAnalysisConsentEnabled = null;
+const DATA_ANALYSIS_CONSENT_KEY = "zynee_data_analysis_consent";
+
+function clearAnalysisCachesForHome() {
+  try {
+    Object.keys(localStorage).forEach((key) => {
+      if (!key) return;
+      if (key.startsWith("zynee-home-daily-v1:moodForecast:") || key.startsWith("zynee-home-daily-v1:cosmicInsights:")) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch (error) {
+    // ignore storage issues
+  }
+}
+
+function readStoredConsentPreference() {
+  const stored = localStorage.getItem(DATA_ANALYSIS_CONSENT_KEY);
+  if (stored === "allowed") return true;
+  if (stored === "declined") return false;
+  return null;
+}
+
+function applyLocalConsentPreference(enabled) {
+  dataAnalysisConsentEnabled = enabled === true;
+  localStorage.setItem(DATA_ANALYSIS_CONSENT_KEY, dataAnalysisConsentEnabled ? "allowed" : "declined");
+  if (!dataAnalysisConsentEnabled) {
+    clearAnalysisCachesForHome();
+  }
+  try {
+    window.dispatchEvent(new CustomEvent("zynee:data-analysis-consent-changed", {
+      detail: { analysisEnabled: dataAnalysisConsentEnabled, consentSet: true, localOnly: true }
+    }));
+  } catch (error) {
+    // ignore CustomEvent issues
+  }
+}
+
+function renderDataAnalysisToggle(enabled, statusText, disabled) {
+  const toggleBtn = document.getElementById("analysisConsentToggleBtn");
+  const statusEl = document.getElementById("analysisConsentStatus");
+  if (!toggleBtn || !statusEl) return;
+
+  if (disabled) {
+    toggleBtn.disabled = true;
+    toggleBtn.textContent = "Saving...";
+    toggleBtn.classList.remove("btn-outline-success", "btn-outline-danger");
+    toggleBtn.classList.add("btn-outline-secondary");
+    statusEl.textContent = statusText || "Updating permission...";
+    return;
+  }
+
+  toggleBtn.disabled = false;
+  if (enabled === true) {
+    toggleBtn.textContent = "ON";
+    toggleBtn.classList.remove("btn-outline-secondary", "btn-outline-danger");
+    toggleBtn.classList.add("btn-outline-success");
+    statusEl.textContent = statusText != null ? statusText : "";
+    return;
+  }
+
+  if (enabled === false) {
+    toggleBtn.textContent = "OFF";
+    toggleBtn.classList.remove("btn-outline-secondary", "btn-outline-success");
+    toggleBtn.classList.add("btn-outline-danger");
+    statusEl.textContent = statusText != null ? statusText : "";
+    return;
+  }
+
+  toggleBtn.textContent = "Set";
+  toggleBtn.classList.remove("btn-outline-success", "btn-outline-danger");
+  toggleBtn.classList.add("btn-outline-secondary");
+  statusEl.textContent = statusText || "Choose if Zynee can analyze your logs.";
+}
+
+async function loadDataAnalysisPermission() {
+  renderDataAnalysisToggle(null, "Loading preference...", false);
+  try {
+    const response = await fetch("/api/data-analysis-consent", { cache: "no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const stored = readStoredConsentPreference();
+      if (stored === null) {
+        dataAnalysisConsentEnabled = null;
+        renderDataAnalysisToggle(null, "Could not load preference.", false);
+        return;
+      }
+      dataAnalysisConsentEnabled = stored;
+      renderDataAnalysisToggle(
+        dataAnalysisConsentEnabled,
+        null,
+        false
+      );
+      return;
+    }
+    dataAnalysisConsentEnabled = data.analysisEnabled === true;
+    renderDataAnalysisToggle(
+      dataAnalysisConsentEnabled,
+      null,
+      false
+    );
+  } catch (error) {
+    const stored = readStoredConsentPreference();
+    if (stored === null) {
+      dataAnalysisConsentEnabled = null;
+      renderDataAnalysisToggle(null, "Could not load preference.", false);
+      return;
+    }
+    dataAnalysisConsentEnabled = stored;
+    renderDataAnalysisToggle(
+      dataAnalysisConsentEnabled,
+      null,
+      false
+    );
+  }
+}
+
+async function setDataAnalysisPermission(allow) {
+  renderDataAnalysisToggle(dataAnalysisConsentEnabled, "Updating preference...", true);
+  try {
+    const response = await fetch("/api/data-analysis-consent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ allow })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      applyLocalConsentPreference(allow === true);
+      renderDataAnalysisToggle(
+        dataAnalysisConsentEnabled,
+        null,
+        false
+      );
+      return;
+    }
+
+    dataAnalysisConsentEnabled = data.analysisEnabled === true;
+    localStorage.setItem(DATA_ANALYSIS_CONSENT_KEY, dataAnalysisConsentEnabled ? "allowed" : "declined");
+    if (!dataAnalysisConsentEnabled) {
+      clearAnalysisCachesForHome();
+    }
+    try {
+      window.dispatchEvent(new CustomEvent("zynee:data-analysis-consent-changed", {
+        detail: { analysisEnabled: dataAnalysisConsentEnabled, consentSet: true, localOnly: false }
+      }));
+    } catch (error) {
+      // ignore CustomEvent issues
+    }
+
+    renderDataAnalysisToggle(
+      dataAnalysisConsentEnabled,
+      null,
+      false
+    );
+  } catch (error) {
+    applyLocalConsentPreference(allow === true);
+    renderDataAnalysisToggle(
+      dataAnalysisConsentEnabled,
+      null,
+      false
+    );
+  }
+}
+
+function toggleDataAnalysisPermission() {
+  const nextValue = dataAnalysisConsentEnabled !== true;
+  setDataAnalysisPermission(nextValue);
+}
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const theme = localStorage.getItem("zyneeTheme") || "default";
+    const hue = localStorage.getItem("zyneeHue") || "270";
+    document.body.classList.add(`${theme}-mode`);
+
+    if (theme === "custom") {
+      document.documentElement.style.setProperty('--theme-hue', hue);
+    }
+
+    loadDataAnalysisPermission();
+  });
+</script>
+
+<!-- Logout Confirmation Banner -->
+<div id="logoutBanner" class="logout-overlay" style="display:none;">
+  <div class="d-flex align-items-center justify-content-center h-100">
+    <div id="logoutCard" class="p-4 rounded-4 text-center shadow" style="max-width: 400px; width: 90%;">
+      <h5 class="mb-3">Logout</h5>
+      <p class="mb-4">Are you sure you want to log out of Zyneé?</p>
+      <div class="d-flex justify-content-center gap-3">
+        <button class="btn btn-outline-secondary rounded-pill px-4" onclick="hideLogoutBanner()">Cancel</button>
+        <a class="btn btn-danger rounded-pill px-4" href="/logout">Log Out</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 🔹 Delete App Data Banner -->
+<div id="deleteDataBanner" class="logout-overlay" style="display:none;">
+  <div class="d-flex align-items-center justify-content-center h-100">
+    <div id="logoutCard" class="p-4 rounded-4 text-center shadow" style="max-width: 400px; width: 90%;">
+      <h5 class="mb-3">Delete All Logs</h5>
+      <p class="mb-4">Are you sure you want to delete all your logs? Your account will stay active.</p>
+      <div class="d-flex justify-content-center gap-3">
+        <button class="btn btn-outline-secondary rounded-pill px-4" onclick="hideDeleteDataBanner()">Cancel</button>
+        <button class="btn btn-danger rounded-pill px-4" onclick="confirmDeleteData()">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ❌ Delete Account Banner -->
+<div id="deleteAccountBanner" class="logout-overlay" style="display:none;">
+  <div class="d-flex align-items-center justify-content-center h-100">
+    <div id="logoutCard" class="p-4 rounded-4 text-center shadow" style="max-width: 400px; width: 90%;">
+      <h5 class="mb-3">Delete Account Permanently</h5>
+      <p class="mb-4">This will delete your entire account and all your data from Zyneé. You’ll need to sign up again to use Zyneé.</p>
+      <div class="d-flex justify-content-center gap-3">
+        <button class="btn btn-outline-secondary rounded-pill px-4" onclick="hideDeleteAccountBanner()">Cancel</button>
+        <button class="btn btn-danger rounded-pill px-4" onclick="confirmDeleteAccount()">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 🔐 Change Password Banner -->
+<div id="changePasswordBanner" class="logout-overlay" style="display:none;">
+  <div class="d-flex align-items-center justify-content-center h-100">
+    <div id="logoutCard" class="p-4 rounded-4 text-center shadow" style="max-width: 400px; width: 90%;">
+      <h5 class="mb-3">Change Password</h5>
+      <form onsubmit="submitPasswordChange(event)">
+        <input type="password" class="form-control mb-2" id="oldPassword" placeholder="Current Password" required />
+        <input type="password" class="form-control mb-2" id="newPassword" placeholder="New Password" required />
+        <input type="password" class="form-control mb-3" id="confirmPassword" placeholder="Confirm New Password" required />
+
+        <div class="d-flex justify-content-center gap-3">
+          <button type="button" class="btn btn-outline-secondary px-4" onclick="hideChangePasswordBanner()">Cancel</button>
+          <button type="submit" class="btn btn-success px-4">Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+
+function showChangePasswordBanner() {
+  document.getElementById("changePasswordBanner").style.display = "flex";
+}
+
+function hideChangePasswordBanner() {
+  document.getElementById("changePasswordBanner").style.display = "none";
+}
+
+function submitPasswordChange(event) {
+  event.preventDefault();
+
+  const oldPassword = document.getElementById("oldPassword").value;
+  const newPassword = document.getElementById("newPassword").value;
+  const confirmPassword = document.getElementById("confirmPassword").value;
+
+  if (newPassword !== confirmPassword) {
+    alert("Passwords do not match!");
+    return;
+  }
+
+  fetch("/change-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ oldPassword, newPassword })
+  })
+  .then(res => res.ok ? res.text() : Promise.reject(res))
+  .then(msg => {
+    alert(msg);
+    hideChangePasswordBanner();
+  })
+  .catch(err => {
+    console.error("❌ Error changing password:", err);
+    alert("Something went wrong.");
+  });
+}
+
+  function hideEditPhotoModal() {
+    document.getElementById("editPhotoModal").style.display = "none";
+  }
+
+let cropper;
+
+function previewSelectedPhoto(input) {
+  const file = input.files[0];
+  const preview = document.getElementById('cropImagePreview');
+  const initials = document.getElementById('initialsPreview');
+
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      preview.onload = function () {
+        if (cropper) {
+          cropper.destroy();
+        }
+        cropper = new Cropper(preview, {
+          aspectRatio: 1,
+          viewMode: 1,
+          dragMode: 'move',
+          autoCropArea: 1,
+          movable: true,
+          zoomable: true,
+          rotatable: true,
+          scalable: true
+        });
+      };
+      initials?.classList.add('d-none');
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+ function removePreview() {
+  const preview = document.getElementById('cropImagePreview'); 
+  const initials = document.getElementById('initialsPreview');
+  const fileInput = document.getElementById('profileFileInput');
+
+  // Clear file input
+  fileInput.value = "";
+  preview.src = "";
+  preview.style.display = "none";
+
+  if (cropper) {
+    cropper.destroy();
+    cropper = null;
+  }
+
+  // Re-show initials
+  if (initials) {
+    initials.classList.remove('d-none');
+  }
+
+  // Send request to remove photo from server
+  fetch('/remove-profile-photo', {
+    method: 'POST'
+  })
+  .then(response => response.text())
+  .then(result => {
+    console.log("🗑️ Photo removed:", result);
+    // Optional: reload page to reflect initials globally
+    location.reload();
+  })
+  .catch(error => console.error('Error:', error));
+}
+</script>
+
+<script>
+function uploadCroppedPhoto() {
+  if (!cropper) {
+    console.warn("⚠️ Cropper is not initialized.");
+    return;
+  }
+
+  cropper.getCroppedCanvas({
+    width: 300,
+    height: 300,
+    imageSmoothingQuality: "high"
+  }).toBlob(function(blob) {
+    if (!blob) {
+      console.error("❌ Failed to create blob from cropped image.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("profilePhoto", blob, "cropped.jpg");
+
+    console.log("📤 Uploading image...");
+
+    fetch("/upload-profile-photo", {
+  method: "POST",
+  body: formData
+})
+.then(res => res.ok ? res.text() : Promise.reject(res))
+.then(data => {
+  console.log("📨 Server response:", data);
+  if (data.includes("Success")) {
+    window.location.href = "/profile.html"; // Replace with your actual profile route
+  }
+})
+.catch(err => {
+  console.error("❌ Upload error:", err);
+});
+  }, "image/jpeg");
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  // Show/Hide for Delete Banners
+  function showDeleteDataBanner() {
+    document.getElementById("deleteDataBanner").style.display = "flex";
+  }
+
+  function hideDeleteDataBanner() {
+    document.getElementById("deleteDataBanner").style.display = "none";
+  }
+
+  function showDeleteAccountBanner() {
+    document.getElementById("deleteAccountBanner").style.display = "flex";
+  }
+
+  function hideDeleteAccountBanner() {
+    document.getElementById("deleteAccountBanner").style.display = "none";
+  }
+
+  // Backend calls for deletion
+  function confirmDeleteData() {
+    const currentPassword = window.prompt("Enter your current password to delete app data:");
+    if (currentPassword === null) return;
+    if (!currentPassword.trim()) {
+      alert("Current password is required.");
+      return;
+    }
+
+    fetch("/delete-user-data", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({ currentPassword })
+    })
+    .then(async (res) => {
+      const message = (await res.text()).trim();
+      if (!res.ok) {
+        throw new Error(message || "Unable to delete app data.");
+      }
+      return message;
+    })
+    .then((data) => {
+      console.log("✅ App data deleted:", data);
+      alert(data);
+      hideDeleteDataBanner();
+      try {
+        Object.keys(localStorage).forEach((key) => {
+          if (key && key.startsWith("zynee-home-daily-v1:")) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (e) {
+        // ignore storage issues
+      }
+      location.reload();
+    })
+    .catch(err => {
+      console.error("❌ Error deleting data:", err);
+      alert(err.message || "Something went wrong.");
+    });
+  }
+
+  function confirmDeleteAccount() {
+    const currentPassword = window.prompt("Enter your current password to permanently delete your account:");
+    if (currentPassword === null) return;
+    if (!currentPassword.trim()) {
+      alert("Current password is required.");
+      return;
+    }
+
+    fetch("/delete-account", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({ currentPassword })
+    })
+    .then(async (res) => {
+      const message = (await res.text()).trim();
+      if (!res.ok) {
+        throw new Error(message || "Unable to delete account.");
+      }
+      return message;
+    })
+    .then((data) => {
+      console.log("🧨 Account deleted:", data);
+      alert(data);
+      hideDeleteAccountBanner();
+      window.location.href = "/login.html";
+    })
+    .catch(err => {
+      console.error("❌ Error deleting account:", err);
+      alert(err.message || "Something went wrong.");
+    });
+  }
+</script>
+
+<script src="/js/future-note-notifier.js"></script>
+<script id="sessionBackGuard">
+(function () {
+  function needsRefresh() {
+    var nav = (performance.getEntriesByType && performance.getEntriesByType("navigation")) || [];
+    return nav.length > 0 && nav[0].type === "back_forward";
+  }
+
+  window.addEventListener("pageshow", function (event) {
+    if (event.persisted || needsRefresh()) {
+      window.location.reload();
+    }
+  });
+})();
+</script>
+</body>
+</html>

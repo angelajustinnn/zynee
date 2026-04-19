@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zyneé</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/responsive.css" />
+<style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5);
+      background-size: 400% 400%;
+      animation: dreamyBG 15s ease infinite;
+      font-family: 'Segoe UI', sans-serif;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    @keyframes dreamyBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .login-card {
+      background-color: rgba(255, 255, 255, 0.95);
+      border-radius: 2rem;
+      padding: 2.8rem;
+      box-shadow: 0 10px 40px rgba(190, 160, 255, 0.3);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+    .login-title {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: #8445badf;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.5px;
+    }
+    .affirmation {
+      font-size: 0.95rem;
+      font-style: italic;
+      color: #a18abf;
+      margin-bottom: 1.8rem;
+    }
+    .form-control {
+      border-radius: 1.2rem;
+      border: 1px solid #e3c6f3;
+    }
+    .btn-login {
+      background-color: #d7a8f0;
+      color: white;
+      border-radius: 1.5rem;
+      font-weight: 500;
+    }
+    .btn-login:hover {
+      background-color: #c285e6;
+    }
+    .link-small {
+      font-size: 0.85rem;
+      color: #9064ab;
+    }
+    .link-small:hover {
+      text-decoration: underline;
+    }
+    .guest-link-wrap {
+      margin-top: 0.9rem;
+    }
+    .guest-or {
+      font-size: 1rem;
+      color: #806a9e;
+      margin-bottom: 0.35rem;
+      letter-spacing: 0.06em;
+    }
+    .guest-link-text {
+      font-size: 0.95rem;
+    }
+    .form-check-label {
+      font-size: 0.85rem;
+      color: #6b5c7d;
+    }
+
+   .modal-blur {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1055;
+  width: 100vw;
+  height: 100vh;
+  backdrop-filter: blur(8px);
+  background-color: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content-box {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 2rem;
+  padding: 2rem 2.5rem;
+  text-align: center;
+  max-width: 400px;
+  box-shadow: 0 10px 40px rgba(190, 160, 255, 0.3);
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+  </style>
+</head>
+<body>
+
+   <div id="forgotPasswordModal" class="modal-blur d-none">
+    <div class="modal-content-box">
+      <h5 class="mb-2">📩 Temporary Password Sent</h5>
+      <p id="forgotMsg">
+        We’ve sent a temporary password to your email:
+        <span id="maskedEmail" class="fw-semibold"></span>
+      </p>
+      <button onclick="closeForgotModal()" class="btn btn-login mt-3 w-100">OK</button>
+    </div>
+  </div>
+
+  <div class="login-card">
+    <div class="login-title">Zyneé</div>
+    <div class="affirmation">“Because feelings deserve a place.”</div>
+
+    <p th:if="${error}" class="text-danger mb-3" th:text="${error}"></p>
+<p th:if="${message}" class="text-success mb-3" th:text="${message}"></p>
+
+    <form action="/login.html" method="post">
+      <div class="mb-3">
+       <input type="email" name="email" class="form-control" placeholder="Email address" required />
+      </div>
+      <div class="mb-3">
+        <input type="password" name="password" class="form-control" placeholder="Password" required />
+      </div>
+      <div class="form-check text-start my-3">
+        <input class="form-check-input" type="checkbox" id="terms" required>
+        <label class="form-check-label" for="terms">
+          I accept the <a href="/terms" class="link-small" target="_blank">Terms & Conditions</a>
+        </label>
+      </div>
+      <button type="submit" class="btn btn-login w-100">Log In</button>
+    </form>
+
+    <div class="mt-3">
+      <a href="#" class="link-small" onclick="triggerForgotPassword()">Forgot password</a><br>
+      <a href="signup.html" class="link-small">New to Zyneé? Create an account</a>
+      <div class="guest-link-wrap">
+        <div class="guest-or">OR</div>
+        <a th:href="@{/home.html(guest=1)}" href="http://localhost:9090/home.html?guest=1" class="link-small guest-link-text">Continue as Guest</a>
+      </div>
+    </div>
+  </div>
+
+ <script>
+  sessionStorage.removeItem("welcomeShown");
+  sessionStorage.removeItem("zynee_guest_session_theme");
+  sessionStorage.removeItem("zynee_guest_session_hue");
+</script>
+<script>
+  function maskEmail(email) {
+    const [user, domain] = email.split('@');
+    if (!user || !domain) return email;
+    if (user.length <= 2) return user[0] + '*' + '@' + domain;
+    return user[0] + '*'.repeat(user.length - 2) + user.slice(-1) + '@' + domain;
+  }
+
+  function triggerForgotPassword() {
+    const emailInput = document.querySelector('input[name="email"]');
+    const email = emailInput.value.trim();
+
+    if (!email) {
+      alert("Please enter your email before requesting a temporary password.");
+      return;
+    }
+
+    fetch('/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      credentials: 'same-origin',
+      body: 'email=' + encodeURIComponent(email)
+    })
+    .then(async (response) => {
+      const text = (await response.text()).trim();
+      if (!response.ok) throw new Error(text || "Request failed");
+      if (text !== "OK") throw new Error(text || "Unable to send temporary password");
+      return text;
+    })
+    .then(() => {
+      document.getElementById('maskedEmail').textContent = maskEmail(email);
+      document.getElementById('forgotPasswordModal').classList.remove('d-none');
+      document.body.style.overflow = 'hidden';
+    })
+    .catch((err) => {
+      alert(err.message || "Something went wrong. Please try again.");
+      console.error("Forgot password error:", err);
+    });
+  }
+
+  function closeForgotModal() {
+    document.getElementById('forgotPasswordModal').classList.add('d-none');
+    document.body.style.overflow = '';
+  }
+</script>
+</body>
+</html> 

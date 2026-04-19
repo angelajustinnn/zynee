@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <script th:inline="javascript">
+    window.ZYNEE_IS_GUEST = /*[[${session.isGuest == true}]]*/ false;
+  </script>
+  <script src="/js/guest-access-guard.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Future Notes | Zyneé</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/responsive.css" />
+<style>
+    :root {
+      --theme-hue: 270;
+      --notebook-bg: #fff;
+      --card-bg: rgba(255, 255, 255, 0.82);
+      --text-color: #1a1a1a;
+      --muted-color: #5c5568;
+      --accent: #8b5da9;
+      --accent-soft: #f1dbff;
+      --border-color: rgba(139, 93, 169, 0.2);
+      --card-text-color: #6b5c7d;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: var(--text-color);
+      background: linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5);
+      transition: background 0.4s ease, color 0.3s ease;
+    }
+
+    .default-mode {
+      background: linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5);
+      background-size: 400% 400%;
+      animation: dreamyBG 15s ease infinite;
+    }
+
+    @keyframes dreamyBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.2rem;
+      z-index: 998;
+    }
+
+    .hamburger {
+      font-size: 1.6rem;
+      background: none;
+      border: none;
+      color: #8b5da9;
+      cursor: pointer;
+    }
+
+    .search-bar {
+      width: 200px;
+      transition: width 0.3s ease;
+      padding: 6px 12px;
+      border-radius: 2rem;
+      border: 1px solid #ddd;
+      background-color: rgba(255, 255, 255, 0.85);
+      outline: none;
+    }
+
+    .search-bar:focus {
+      width: 300px;
+      background-color: white;
+    }
+
+    .suggestions {
+      position: fixed;
+      top: calc(60px + 0.1cm);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      background: #fff;
+      padding: 0.8rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      z-index: 997;
+      display: none;
+    }
+
+    .suggestions.show {
+      display: block;
+    }
+
+    .suggestion-item {
+      padding: 0.3rem 0;
+      cursor: pointer;
+    }
+
+    .suggestion-item:hover {
+      color: #8b5da9;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      width: 240px;
+      height: calc(100% - 60px);
+      background-color: var(--notebook-bg);
+      transform: translateX(-100%);
+      transition: transform 0.4s ease, background-color 0.3s ease;
+      z-index: 997;
+      padding: 1rem;
+      box-shadow: 2px 2px 15px rgba(190, 160, 255, 0.2);
+      border-top-right-radius: 1rem;
+      border-bottom-right-radius: 1rem;
+      overflow-y: auto;
+    }
+
+    .sidebar.open {
+      transform: translateX(0);
+    }
+
+    .sidebar h4 {
+      font-size: 1.4rem;
+      color: #8b5da9;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .sidebar li {
+      padding: 0.6rem 0;
+      color: #6b5c7d;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .sidebar li:hover {
+      color: #8b5da9;
+    }
+
+    .theme-options {
+      display: none;
+      margin-top: 0.5rem;
+      margin-left: 1.2rem;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.95rem;
+      color: #6b5c7d;
+    }
+
+    .theme-options.active {
+      display: flex;
+    }
+
+    .theme-option {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .theme-option .dot {
+      height: 0.6rem;
+      width: 0.6rem;
+      border-radius: 50%;
+      border: 1px solid #6b5c7d;
+      background-color: transparent;
+    }
+
+    .theme-option.selected .dot {
+      background-color: #8b5da9;
+    }
+
+    #hueSliderContainer {
+      display: none;
+      margin-top: 1rem;
+      margin-left: 1.8rem;
+      height: 140px;
+      position: relative;
+    }
+
+    #hueSlider {
+      writing-mode: bt-lr;
+      appearance: slider-vertical;
+      -webkit-appearance: slider-vertical;
+      width: 20px;
+      height: 100%;
+      transform: rotate(180deg);
+    }
+
+    .main-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-top: calc(60px + 0.1cm);
+      margin-left: 0;
+      transition: margin-left 0.4s ease, margin-top 0.4s ease;
+      padding: 2rem;
+    }
+
+    .future-layout {
+      display: grid;
+      grid-template-columns: minmax(360px, 1fr) minmax(360px, 1fr);
+      gap: 1rem;
+      align-items: stretch;
+      min-height: calc(100vh - 140px);
+      max-width: 1060px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .note-card,
+    .jar-panel {
+      border-radius: 1.2rem;
+      background: var(--card-bg);
+      border: none;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+      min-height: 60vh;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 0.95rem 1rem;
+    }
+
+    .note-card h3 {
+      margin: 0 0 0.8rem;
+      font-size: 1.75rem;
+      font-weight: 500;
+      color: #6b5c7d;
+      text-align: center;
+    }
+
+    .note-pad {
+      width: 100%;
+      min-height: 35vh;
+      resize: vertical;
+      border: 1px solid #e8d8f8;
+      border-radius: 1rem;
+      padding: 0.85rem;
+      background: linear-gradient(transparent 28px, rgba(139, 93, 169, 0.08) 29px);
+      background-size: 100% 29px;
+      line-height: 29px;
+      color: #2f253d;
+      outline: none;
+    }
+
+    .form-label {
+      font-weight: 600;
+      color: #594772;
+      margin-top: 0.8rem;
+    }
+
+    .future-input {
+      border-radius: 0.8rem;
+      border: 1px solid #dfd2ee;
+      padding: 0.5rem 0.65rem;
+      width: 100%;
+    }
+
+    .unlock-input-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1.2fr 1fr 1fr;
+      gap: 0.55rem;
+      align-items: center;
+    }
+
+    .seal-confirm-box {
+      margin-top: 0.7rem;
+      border: 1px solid #e7d8f6;
+      border-radius: 0.95rem;
+      background: rgba(245, 235, 255, 0.78);
+      padding: 0.68rem 0.8rem 0.78rem;
+    }
+
+    .seal-confirm-text {
+      font-size: 0.9rem;
+      color: #4f3f65;
+      font-weight: 600;
+      margin-bottom: 0.45rem;
+    }
+
+    .confirm-save-btn {
+      margin-top: 0;
+      width: 100%;
+      background: #d9bcff;
+      color: #4a3467;
+    }
+
+    .save-btn {
+      margin-top: 0.9rem;
+      border: none;
+      border-radius: 999px;
+      background: #e8d3ff;
+      color: #5e4580;
+      font-weight: 600;
+      padding: 0.55rem 1.2rem;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .save-btn:hover {
+      background: #dcc2ff;
+      transform: translateY(-1px);
+    }
+
+    .save-status {
+      margin-top: 0.6rem;
+      font-size: 0.92rem;
+      color: var(--muted-color);
+      min-height: 1.2rem;
+    }
+
+    .unlock-alert {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      border: 1px solid #e9d4a8;
+      border-radius: 0.9rem;
+      background: #fff8df;
+      color: #5c4b1e;
+      padding: 0.65rem 0.8rem;
+      margin-bottom: 0.85rem;
+      font-size: 0.93rem;
+    }
+
+    .unlock-alert.show {
+      display: flex;
+    }
+
+    .unlock-action {
+      border: none;
+      border-radius: 999px;
+      background: #f0d9a7;
+      color: #5f4417;
+      padding: 0.35rem 0.8rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .jar-box {
+      display: flex;
+      justify-content: center;
+      cursor: pointer;
+      margin-top: 0.2rem;
+      margin-bottom: 1rem;
+      position: relative;
+      overflow: visible;
+      min-height: 392px;
+    }
+
+    .jar-visual {
+      position: relative;
+      width: 312px;
+      padding-top: 24px;
+    }
+
+    .jar {
+      position: relative;
+      width: 312px;
+      height: 368px;
+      border-radius: 42px 42px 66px 66px;
+      border: 4px solid #9ec6eb;
+      background: linear-gradient(180deg, rgba(224, 245, 255, 0.84) 0%, rgba(189, 224, 255, 0.74) 58%, rgba(171, 209, 245, 0.72) 100%);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.85),
+        inset 0 -22px 35px rgba(123, 174, 218, 0.28),
+        0 16px 34px rgba(76, 122, 170, 0.24);
+      overflow: hidden;
+    }
+
+    .jar::before {
+      content: "";
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      width: 60px;
+      height: 278px;
+      border-radius: 30px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.08));
+      filter: blur(0.2px);
+    }
+
+    .jar::after {
+      content: "";
+      position: absolute;
+      right: 22px;
+      top: 42px;
+      width: 30px;
+      height: 150px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.06));
+    }
+
+    .jar-lid {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 224px;
+      height: 42px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #f7d99c, #dd9d57);
+      border: 2px solid #be7e36;
+      z-index: 4;
+      box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.45), 0 3px 8px rgba(102, 67, 27, 0.26);
+    }
+
+    .jar-lid::after {
+      content: "";
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 12px;
+      height: 7px;
+      border-radius: 6px;
+      background: rgba(146, 88, 28, 0.22);
+    }
+
+    .jar-label {
+      position: absolute;
+      top: 68px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.86);
+      border-radius: 999px;
+      padding: 0.36rem 0.8rem;
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: #5b4b6e;
+      z-index: 2;
+      border: 1px solid rgba(139, 93, 169, 0.22);
+    }
+
+    .jar-note-count {
+      position: absolute;
+      bottom: 34px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.02rem;
+      color: #2f4f6e;
+      text-align: center;
+      z-index: 2;
+      font-weight: 600;
+    }
+
+    .jar-lines {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      top: 104px;
+      bottom: 72px;
+      border-radius: 24px;
+      border: 1px dashed rgba(84, 126, 164, 0.32);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(170, 215, 250, 0.15));
+    }
+
+    .jar-scrolls {
+      position: absolute;
+      left: 32px;
+      right: 32px;
+      top: 122px;
+      bottom: 98px;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-end;
+      gap: 8px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .jar-scroll {
+      position: relative;
+      width: 46px;
+      height: 12px;
+      border-radius: 4px;
+      border: 1px solid rgba(145, 102, 52, 0.38);
+      background: linear-gradient(180deg, #fff7d9, #efd6a1);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62), 0 2px 3px rgba(102, 67, 27, 0.22);
+    }
+
+    .jar-scroll::before,
+    .jar-scroll::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      transform: translateY(-50%);
+      border: 1px solid rgba(132, 87, 39, 0.45);
+      background: radial-gradient(circle at 35% 35%, #fff7df 0%, #efd6a1 70%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62);
+    }
+
+    .jar-scroll::before {
+      left: -6px;
+    }
+
+    .jar-scroll::after {
+      right: -6px;
+    }
+
+    .jar-scroll.unlocked {
+      border-color: rgba(44, 118, 73, 0.35);
+      background: linear-gradient(180deg, #e8f8ef, #c6e9d2);
+    }
+
+    .falling-note-fx {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      border: 1px solid rgba(150, 112, 201, 0.5);
+      background: linear-gradient(180deg, #fff8cf, #f6eeb8);
+      color: #7f669d;
+      font-size: 0.9rem;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 18px rgba(85, 58, 120, 0.18);
+      pointer-events: none;
+      z-index: 1100;
+    }
+
+    .falling-note-fx.animate {
+      display: flex;
+      animation: noteDrop 700ms cubic-bezier(0.2, 0.75, 0.25, 1);
+    }
+
+    @keyframes noteDrop {
+      0% {
+        transform: translate(0, 0) rotate(-10deg) scale(1);
+        opacity: 0.98;
+      }
+      70% {
+        transform: translate(calc(var(--note-dx) * 0.72), calc(var(--note-dy) * 0.72)) rotate(8deg) scale(0.88);
+        opacity: 0.95;
+      }
+      100% {
+        transform: translate(var(--note-dx), var(--note-dy)) rotate(16deg) scale(0.55);
+        opacity: 0;
+      }
+    }
+
+    .jar-tabs {
+      display: flex;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.8rem;
+    }
+
+    .jar-tab {
+      border: none;
+      border-radius: 999px;
+      background: #f2e7ff;
+      color: #5f4780;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.84rem;
+      font-weight: 600;
+    }
+
+    .jar-tab.active {
+      background: #dcbcfe;
+      color: #3f2a5f;
+    }
+
+    .note-list {
+      flex: 1;
+      min-height: 300px;
+      max-height: 100%;
+      overflow-y: scroll;
+      padding-right: 0.25rem;
+      scrollbar-width: thin;
+      scrollbar-color: #b896dc rgba(235, 220, 252, 0.5);
+      scrollbar-gutter: stable;
+    }
+
+    .note-list::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .note-list::-webkit-scrollbar-track {
+      background: rgba(235, 220, 252, 0.5);
+      border-radius: 999px;
+    }
+
+    .note-list::-webkit-scrollbar-thumb {
+      background: #b896dc;
+      border-radius: 999px;
+      border: 2px solid rgba(235, 220, 252, 0.5);
+    }
+
+    .note-list::-webkit-scrollbar-thumb:hover {
+      background: #9f75cd;
+    }
+
+    .note-row {
+      border: 1px solid #eadcf8;
+      border-radius: 0.9rem;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 0.7rem;
+      margin-bottom: 0.55rem;
+    }
+
+    .note-meta {
+      font-size: 0.8rem;
+      color: #665879;
+      margin-bottom: 0.35rem;
+    }
+
+    .note-content {
+      font-size: 0.92rem;
+      color: #2f253d;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .note-actions {
+      margin-top: 0.5rem;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .note-delete-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 0.28rem 0.8rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: #ffe4ea;
+      color: #8f2f45;
+    }
+
+    .note-delete-btn:hover {
+      background: #ffd5df;
+    }
+
+    .sealed-text {
+      font-size: 0.88rem;
+      color: #776784;
+      font-style: italic;
+    }
+
+    #profileCircle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      color: #fff;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      border: 2px solid #fff;
+      cursor: pointer;
+      background-color: #8b5da9;
+    }
+
+    body.light-mode {
+      background: #fdfdfd;
+      --notebook-bg: #ffffff;
+      --card-bg: #ffffff;
+      --card-text-color: #6b5c7d;
+    }
+
+    body.dark-mode {
+      background: #1c1c1e;
+      --notebook-bg: #2c2c2e;
+      --card-bg: #2c2c2e;
+      --text-color: #ffffff;
+      --muted-color: #ddd7eb;
+      --accent: #c8a2ff;
+      --accent-soft: #2f2442;
+      --border-color: rgba(200, 162, 255, 0.28);
+      --card-text-color: #ffffff;
+    }
+
+    body.dark-mode .top-bar {
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    body.dark-mode .sidebar {
+      background: #2c2c2e;
+      color: #6b5c7d;
+    }
+
+    body.dark-mode .sidebar li {
+      color: #6b5c7d;
+    }
+
+    body.dark-mode .theme-options,
+    body.dark-mode .theme-option {
+      color: #6b5c7d;
+    }
+
+    body.dark-mode .theme-option .dot {
+      border-color: #6b5c7d;
+    }
+
+    body.dark-mode .theme-option.selected .dot {
+      background-color: #8b5da9;
+    }
+
+    body.dark-mode .search-bar {
+      background-color: rgba(255, 255, 255, 0.85);
+      border-color: #ddd;
+      color: #222;
+    }
+
+    body.dark-mode .search-bar:focus {
+      background-color: #ffffff;
+      color: #222;
+    }
+
+    body.dark-mode .suggestions {
+      background: #ffffff;
+      color: #222;
+    }
+
+    body.dark-mode .suggestion-item {
+      color: #222;
+      border-bottom-color: rgba(0, 0, 0, 0.08);
+    }
+
+    body.dark-mode .suggestion-item:hover {
+      color: #c8a2ff;
+    }
+
+    body.dark-mode .note-pad {
+      color: #ffffff;
+    }
+
+    body.dark-mode .jar-scroll {
+      background: linear-gradient(180deg, #f5e6bf, #d7bb7f);
+      border-color: rgba(145, 102, 52, 0.4);
+    }
+
+    body.dark-mode .jar-scroll.unlocked {
+      background: linear-gradient(180deg, #d9f0e4, #a5d3bb);
+      border-color: rgba(44, 118, 73, 0.4);
+    }
+
+    body.dark-mode .note-row {
+      background: rgba(48, 42, 58, 0.9);
+      border-color: #4f4362;
+    }
+
+    body.dark-mode .note-meta,
+    body.dark-mode .note-content,
+    body.dark-mode .sealed-text {
+      color: #efeaff;
+    }
+
+    body.dark-mode .jar-tab {
+      background: #3a2f4a;
+      color: #efeaff;
+    }
+
+    body.dark-mode .jar-tab.active {
+      background: #5d4c7d;
+      color: #ffffff;
+    }
+
+    body.dark-mode .save-btn,
+    body.dark-mode .confirm-save-btn {
+      background: #5d4c7d;
+      color: #ffffff;
+    }
+
+    body.dark-mode .save-btn:hover {
+      background: #6b5a8f;
+    }
+
+    body.custom-mode {
+      --card-bg: hsla(var(--theme-hue), 62%, 97%, 0.9);
+      --text-color: hsl(var(--theme-hue), 30%, 16%);
+      --muted-color: hsl(var(--theme-hue), 18%, 38%);
+      --accent: hsl(var(--theme-hue), 42%, 44%);
+      --accent-soft: hsla(var(--theme-hue), 65%, 86%, 0.6);
+      --border-color: hsla(var(--theme-hue), 42%, 42%, 0.25);
+      --card-text-color: hsl(var(--theme-hue), 28%, 16%);
+      background: hsl(var(--theme-hue), 70%, 91%);
+    }
+
+    body.custom-mode .top-bar,
+    body.custom-mode .sidebar {
+      background-color: hsla(var(--theme-hue), 40%, 85%, 0.95);
+    }
+
+    body.default-mode .sidebar {
+      background-color: #ffffff !important;
+    }
+
+    @media (max-width: 991px) {
+      .future-layout {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        max-width: 100%;
+      }
+
+      .note-card,
+      .jar-panel {
+        min-height: auto;
+      }
+
+      .note-pad {
+        min-height: 260px;
+      }
+
+      .jar-visual {
+        width: 244px;
+      }
+
+      .jar {
+        width: 244px;
+        height: 300px;
+      }
+
+      .jar-lines {
+        top: 86px;
+        bottom: 58px;
+      }
+
+      .jar-note-count {
+        font-size: 0.92rem;
+      }
+
+      .unlock-input-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .search-bar {
+        width: 190px;
+      }
+
+      .search-bar:focus {
+        width: 220px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search Zyneé..." onfocus="expandSearch()" onblur="shrinkSearch()" oninput="showSuggestions(this.value)">
+    <div id="suggestionsBox" class="suggestions"></div>
+    <a href="/profile.html" class="ms-3" style="text-decoration:none;">
+      <div th:if="${session.profilePhoto == null or session.profilePhoto == ''}"
+           id="profileCircle"
+           th:text="${session.initials}"
+           th:style="'background-color:' + ${session.profileColor}">
+      </div>
+      <img th:if="${session.profilePhoto != null and session.profilePhoto != ''}"
+           th:src="@{${session.profilePhoto}}"
+           alt="Profile"
+           style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; cursor: pointer;" />
+    </a>
+  </div>
+
+  <div id="sidebar" class="sidebar">
+    <h4>Menu</h4>
+    <ul>
+      <li onclick="window.location.href='/home.html'">🏠 Home</li>
+      <li onclick="window.location.href='/journal.html'">📖 My Journal</li>
+      <li onclick="window.location.href='/stats.html'">📊 Stats</li>
+      <li onclick="window.location.href='/mood.html'">😊 Mood Tracker</li>
+      <li onclick="window.location.href='/quick-checkin.html'">⚡ Quick Check-In</li>
+      <li onclick="window.location.href='/affirmation.html'">🌟 Affirmations</li>
+      <li onclick="window.location.href='/candle.html'">🕯️ Candle</li>
+      <li onclick="window.location.href='/music.html'">🎵 Music</li>
+    <li onclick="window.location.href='/ai-assistant.html'">🤖 Emotional Assistant</li>
+      <li onclick="window.location.href='/future-notes.html'">🫙 Future Notes</li>
+      <li onclick="window.location.href='/insights.html'">🧠 Insights</li>
+      <li onclick="toggleThemeMenu()">🎨 Theme</li>
+      <div id="themeMenu" class="theme-options">
+        <div class="theme-option" onclick="applyTheme('default')"><div class="dot"></div> Default Mode</div>
+        <div class="theme-option" onclick="applyTheme('light')"><div class="dot"></div> Light Mode</div>
+        <div class="theme-option" onclick="applyTheme('dark')"><div class="dot"></div> Dark Mode</div>
+        <div class="theme-option" onclick="applyTheme('custom')"><div class="dot"></div> Custom Mode</div>
+        <div id="hueSliderContainer">
+          <input type="range" id="hueSlider" min="0" max="360" value="270" oninput="updateHue(this.value)">
+        </div>
+      </div>
+      <li onclick="window.location.href='/about.html'">ℹ️ About</li>
+    </ul>
+  </div>
+
+  <main id="mainContent" class="main-wrapper">
+    <div class="future-layout">
+      <section class="note-card">
+        <h3>📝 Future Notes</h3>
+        <p class="mb-2" style="color: var(--muted-color); font-size: 0.92rem;">
+          Write a note, choose unlock date and time, and seal it in your jar.
+        </p>
+        <textarea id="futureNoteInput" class="note-pad" placeholder="Write a message for your future self..."></textarea>
+
+        <label class="form-label">Unlock Date & Time</label>
+        <div class="unlock-input-grid">
+          <select id="futureUnlockDay" class="future-input"></select>
+          <select id="futureUnlockMonth" class="future-input"></select>
+          <select id="futureUnlockYear" class="future-input"></select>
+          <input id="futureUnlockTime" type="time" class="future-input">
+        </div>
+
+        <button id="sealPreviewBtn" class="save-btn" onclick="prepareSealFutureNote()">Seal Note in Jar</button>
+        <div id="sealConfirmBox" class="seal-confirm-box" style="display:none;">
+          <div class="seal-confirm-text">
+            Unlocks on: <span id="sealConfirmText">-</span>
+          </div>
+          <button id="confirmSealBtn" class="save-btn confirm-save-btn" onclick="sealFutureNote()">Save</button>
+        </div>
+        <div id="saveStatus" class="save-status"></div>
+      </section>
+
+      <section class="jar-panel">
+        <div id="unlockNotice" class="unlock-alert">
+          <span id="unlockNoticeText">Your note has unlocked.</span>
+          <button class="unlock-action" onclick="openUnlockedNotesFromNotice()">Read Now</button>
+        </div>
+
+        <div class="jar-box" onclick="toggleJarList()">
+          <div class="jar-visual">
+            <div class="jar-lid"></div>
+            <div id="futureJar" class="jar" title="Click to view your sealed notes">
+              <div class="jar-label">Future Notes Jar</div>
+              <div class="jar-lines"></div>
+              <div id="jarScrolls" class="jar-scrolls"></div>
+              <div class="jar-note-count">
+                Sealed: <span id="lockedCount">0</span><br>
+                Unlocked: <span id="unlockedCount">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="jar-tabs">
+          <button id="jarTabButton" class="jar-tab active" onclick="switchNoteView('jar')">All in Jar</button>
+          <button id="unlockedTabButton" class="jar-tab" onclick="switchNoteView('unlocked')">Unlocked Notes</button>
+        </div>
+
+        <div id="jarNoteList" class="note-list" style="display:none;"></div>
+        <div id="unlockedNoteList" class="note-list" style="display:none;"></div>
+      </section>
+    </div>
+  </main>
+
+  <div id="fallingNoteFx" class="falling-note-fx" aria-hidden="true">📝</div>
+
+  <script>
+    const suggestionsData = [
+      { label: "Home", url: "/home.html" },
+      { label: "My Journal", url: "/journal.html" },
+      { label: "View Journal Entries", url: "/view-entries" },
+      { label: "Statistics", url: "/stats.html" },
+      { label: "Add Mood", url: "/mood.html" },
+  { label: "Quick Check-In", url: "/quick-checkin.html" },
+      { label: "Affirmations", url: "/affirmation.html" },
+      { label: "Virtual Candle", url: "/candle.html" },
+      { label: "Music", url: "/music.html" },
+      { label: "Emotional Assistant", url: "/ai-assistant.html" },
+      { label: "Future Notes", url: "/future-notes.html" },
+  { label: "Insights", url: "/insights.html" },
+      { label: "Profile", url: "/profile.html" },
+      { label: "About", url: "/about.html" }
+    ];
+
+    const sidebar = document.getElementById("sidebar");
+    const topBar = document.querySelector(".top-bar");
+    const mainContent = document.getElementById("mainContent");
+    const themeMenu = document.getElementById("themeMenu");
+    const noteCard = document.querySelector(".note-card");
+    const jarPanel = document.querySelector(".jar-panel");
+    const futureNoteInput = document.getElementById("futureNoteInput");
+    const futureUnlockDay = document.getElementById("futureUnlockDay");
+    const futureUnlockMonth = document.getElementById("futureUnlockMonth");
+    const futureUnlockYear = document.getElementById("futureUnlockYear");
+    const futureUnlockTime = document.getElementById("futureUnlockTime");
+    const sealConfirmBox = document.getElementById("sealConfirmBox");
+    const sealConfirmText = document.getElementById("sealConfirmText");
+    const sealPreviewBtn = document.getElementById("sealPreviewBtn");
+    const confirmSealBtn = document.getElementById("confirmSealBtn");
+    const futureJar = document.getElementById("futureJar");
+    const jarScrolls = document.getElementById("jarScrolls");
+    const fallingNoteFx = document.getElementById("fallingNoteFx");
+    const saveStatus = document.getElementById("saveStatus");
+    const unlockNotice = document.getElementById("unlockNotice");
+    const unlockNoticeText = document.getElementById("unlockNoticeText");
+    const jarNoteList = document.getElementById("jarNoteList");
+    const unlockedNoteList = document.getElementById("unlockedNoteList");
+    const jarTabButton = document.getElementById("jarTabButton");
+    const unlockedTabButton = document.getElementById("unlockedTabButton");
+    const lockedCountEl = document.getElementById("lockedCount");
+    const unlockedCountEl = document.getElementById("unlockedCount");
+
+    let selectedTheme = localStorage.getItem("zyneeTheme") || "default";
+    let savedHue = localStorage.getItem("zyneeHue") || "270";
+    let activeView = "jar";
+    let jarExpandedByClick = true;
+    let pendingUnlockAt = "";
+    let autoRefreshTimer = null;
+    const AUTO_REFRESH_MS = 10000;
+    const NOTICE_DISMISS_KEY = "zy_fn_notify_dismiss_unread_count";
+    let openUnlockedFromQuery = new URLSearchParams(window.location.search).get("view") === "unlocked";
+
+    const MONTH_NAMES = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    function toggleSidebar() {
+      if (!sidebar.classList.contains("open")) {
+        closeAllExcept("sidebar");
+        sidebar.classList.add("open");
+        mainContent.style.marginLeft = "240px";
+      } else {
+        sidebar.classList.remove("open");
+        mainContent.style.marginLeft = "0";
+        themeMenu.classList.remove("active");
+      }
+    }
+
+    function toggleThemeMenu() {
+      closeAllExcept("theme");
+      themeMenu.classList.toggle("active");
+    }
+
+    function applyTheme(mode) {
+      selectedTheme = mode;
+      document.body.classList.remove("default-mode", "light-mode", "dark-mode", "custom-mode");
+      document.body.classList.add(mode + "-mode");
+      document.querySelectorAll(".theme-option").forEach(opt => opt.classList.remove("selected"));
+      const selected = Array.from(document.querySelectorAll(".theme-option")).find(opt =>
+        opt.textContent.trim().toLowerCase().includes(mode)
+      );
+      if (selected) {
+        selected.classList.add("selected");
+      }
+
+      if (mode === "custom") {
+        document.documentElement.style.setProperty("--theme-hue", savedHue);
+        document.getElementById("hueSliderContainer").style.display = "block";
+        document.getElementById("hueSlider").value = savedHue;
+        updateHue(savedHue);
+      } else {
+        document.getElementById("hueSliderContainer").style.display = "none";
+        if (mode === "default") {
+          document.body.style.background = "linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5)";
+          sidebar.style.backgroundColor = "#ffffff";
+          topBar.style.background = "rgba(255, 255, 255, 0.6)";
+          noteCard.style.backgroundColor = "rgba(255, 255, 255, 0.85)";
+          jarPanel.style.backgroundColor = "rgba(255, 255, 255, 0.85)";
+          noteCard.style.color = "#6b5c7d";
+          jarPanel.style.color = "#6b5c7d";
+        } else if (mode === "light") {
+          document.body.style.background = "#ffffff";
+          sidebar.style.backgroundColor = "#ffffff";
+          topBar.style.background = "#ffffff";
+          noteCard.style.backgroundColor = "#ffffff";
+          jarPanel.style.backgroundColor = "#ffffff";
+          noteCard.style.color = "#333333";
+          jarPanel.style.color = "#333333";
+        } else if (mode === "dark") {
+          document.body.style.background = "#1c1c1e";
+          sidebar.style.backgroundColor = "#2c2c2e";
+          topBar.style.background = "rgba(255, 255, 255, 0.6)";
+          noteCard.style.backgroundColor = "#2c2c2e";
+          jarPanel.style.backgroundColor = "#2c2c2e";
+          noteCard.style.color = "#ffffff";
+          jarPanel.style.color = "#ffffff";
+        }
+      }
+
+      localStorage.setItem("zyneeTheme", mode);
+    }
+
+    function updateHue(value) {
+      if (selectedTheme !== "custom") return;
+      savedHue = value;
+      const h = parseInt(value, 10);
+      document.documentElement.style.setProperty("--theme-hue", value);
+      document.body.style.background = `hsl(${h}, 70%, 90%)`;
+      sidebar.style.backgroundColor = `hsl(${h}, 40%, 85%)`;
+      topBar.style.background = `hsl(${h}, 40%, 85%)`;
+      noteCard.style.backgroundColor = `hsl(${h}, 40%, 90%)`;
+      jarPanel.style.backgroundColor = `hsl(${h}, 40%, 90%)`;
+      noteCard.style.color = `hsl(${h}, 20%, 25%)`;
+      jarPanel.style.color = `hsl(${h}, 20%, 25%)`;
+      localStorage.setItem("zyneeHue", value);
+    }
+
+    function expandSearch() {
+      closeAllExcept("search");
+      document.getElementById("suggestionsBox").classList.add("show");
+      document.getElementById("mainContent").style.marginTop = "calc(60px + 0.1cm + 3.2rem)";
+    }
+
+    function shrinkSearch() {
+      setTimeout(() => {
+        document.getElementById("suggestionsBox").classList.remove("show");
+        document.getElementById("mainContent").style.marginTop = "calc(60px + 0.1cm)";
+      }, 150);
+    }
+
+    function showSuggestions(query) {
+      const box = document.getElementById("suggestionsBox");
+      const q = (query || "").trim().toLowerCase();
+      if (!q) {
+        box.classList.remove("show");
+        return;
+      }
+
+      const filtered = suggestionsData.filter(item => item.label.toLowerCase().includes(q));
+      box.innerHTML = filtered.length
+        ? filtered.map(item =>
+            `<div class="suggestion-item" data-url="${item.url}" onclick="goToSuggestion('${item.url}')">${item.label}</div>`
+          ).join("")
+        : "<div class='suggestion-item'>No matches found</div>";
+      box.classList.add("show");
+    }
+
+    function goToSuggestion(url) {
+      window.location.href = url;
+    }
+
+    function closeAllExcept(active) {
+      const box = document.getElementById("suggestionsBox");
+      if (active !== "sidebar" && active !== "theme") {
+        sidebar.classList.remove("open");
+        mainContent.style.marginLeft = "0";
+      }
+      if (active !== "search") {
+        box.classList.remove("show");
+        mainContent.style.marginTop = "calc(60px + 0.1cm)";
+      }
+      if (active !== "theme") {
+        themeMenu.classList.remove("active");
+      }
+    }
+
+    function showStatus(text, type) {
+      saveStatus.textContent = text || "";
+      saveStatus.style.color = type === "error" ? "#a62d2d" : type === "success" ? "#2e6f44" : "var(--muted-color)";
+    }
+
+    function normalizeErrorMessage(rawMessage, fallback) {
+      const message = String(rawMessage || "").trim();
+      if (!message) return fallback;
+      if (/not\s*found/i.test(message)) return fallback;
+      if (/^404\b/i.test(message)) return fallback;
+      return message;
+    }
+
+    function getDismissedUnreadCount() {
+      const raw = localStorage.getItem(NOTICE_DISMISS_KEY);
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function setDismissedUnreadCount(unread) {
+      const count = Number(unread);
+      if (!Number.isFinite(count) || count <= 0) return;
+      localStorage.setItem(NOTICE_DISMISS_KEY, String(count));
+    }
+
+    function clearDismissedUnreadCount() {
+      localStorage.removeItem(NOTICE_DISMISS_KEY);
+    }
+
+    function isNoticeDismissed(unread) {
+      const count = Number(unread);
+      if (!Number.isFinite(count) || count <= 0) return false;
+      return getDismissedUnreadCount() === count;
+    }
+
+    function pad2(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function getDefaultUnlockDate() {
+      const date = new Date();
+      date.setMinutes(date.getMinutes() + 15);
+      date.setSeconds(0, 0);
+      return date;
+    }
+
+    function getDaysInMonth(year, monthIndex) {
+      return new Date(year, monthIndex + 1, 0).getDate();
+    }
+
+    function formatUnlockDisplay(year, monthIndex, day, hour, minute) {
+      const hour12 = ((hour + 11) % 12) + 1;
+      const meridiem = hour >= 12 ? "PM" : "AM";
+      return `${pad2(day)} ${MONTH_NAMES[monthIndex]} ${year}, ${pad2(hour12)}:${pad2(minute)} ${meridiem}`;
+    }
+
+    function buildUnlockIso(year, monthIndex, day, hour, minute) {
+      return `${year}-${pad2(monthIndex + 1)}-${pad2(day)}T${pad2(hour)}:${pad2(minute)}`;
+    }
+
+    function resetSealConfirmation() {
+      pendingUnlockAt = "";
+      sealConfirmText.textContent = "-";
+      sealConfirmBox.style.display = "none";
+    }
+
+    function updateUnlockDayOptions() {
+      const year = Number(futureUnlockYear.value);
+      const monthIndex = Number(futureUnlockMonth.value);
+      const previousDay = Number(futureUnlockDay.value) || 1;
+      const maxDay = getDaysInMonth(year, monthIndex);
+
+      futureUnlockDay.innerHTML = Array.from({ length: maxDay }, (_, index) => {
+        const day = index + 1;
+        return `<option value="${day}">${day}</option>`;
+      }).join("");
+
+      futureUnlockDay.value = String(Math.min(previousDay, maxDay));
+    }
+
+    function initializeUnlockSelectors(defaultDate) {
+      const startDate = defaultDate || getDefaultUnlockDate();
+      const currentYear = new Date().getFullYear();
+
+      futureUnlockMonth.innerHTML = MONTH_NAMES.map((name, index) =>
+        `<option value="${index}">${name}</option>`
+      ).join("");
+
+      futureUnlockYear.innerHTML = Array.from({ length: 11 }, (_, offset) => {
+        const year = currentYear + offset;
+        return `<option value="${year}">${year}</option>`;
+      }).join("");
+
+      futureUnlockMonth.value = String(startDate.getMonth());
+      futureUnlockYear.value = String(startDate.getFullYear());
+      updateUnlockDayOptions();
+      futureUnlockDay.value = String(startDate.getDate());
+      futureUnlockTime.value = `${pad2(startDate.getHours())}:${pad2(startDate.getMinutes())}`;
+    }
+
+    function getSelectedUnlockDateTime() {
+      const day = Number(futureUnlockDay.value);
+      const monthIndex = Number(futureUnlockMonth.value);
+      const year = Number(futureUnlockYear.value);
+      const timeParts = (futureUnlockTime.value || "").split(":");
+
+      if (!day || Number.isNaN(monthIndex) || !year || timeParts.length < 2) {
+        return { error: "Please select unlock date and time." };
+      }
+
+      const hour = Number(timeParts[0]);
+      const minute = Number(timeParts[1]);
+      const selectedDate = new Date(year, monthIndex, day, hour, minute, 0, 0);
+
+      const isValidDate = selectedDate.getFullYear() === year
+        && selectedDate.getMonth() === monthIndex
+        && selectedDate.getDate() === day;
+
+      if (!isValidDate) {
+        return { error: "Please choose a valid unlock date." };
+      }
+
+      if (selectedDate.getTime() <= Date.now()) {
+        return { error: "Unlock date/time must be in the future so your note stays sealed." };
+      }
+
+      return {
+        iso: buildUnlockIso(year, monthIndex, day, hour, minute),
+        display: formatUnlockDisplay(year, monthIndex, day, hour, minute)
+      };
+    }
+
+    function prepareSealFutureNote() {
+      const content = futureNoteInput.value.trim();
+      if (!content) {
+        showStatus("Please write your future note first.", "error");
+        return;
+      }
+
+      const unlock = getSelectedUnlockDateTime();
+      if (unlock.error) {
+        showStatus(unlock.error, "error");
+        return;
+      }
+
+      pendingUnlockAt = unlock.iso;
+      sealConfirmText.textContent = unlock.display;
+      sealConfirmBox.style.display = "block";
+      showStatus("Review unlock date/time and tap Save to confirm.", "info");
+    }
+
+    function playNoteDropAnimation() {
+      if (!fallingNoteFx || !futureJar || !confirmSealBtn) {
+        return Promise.resolve();
+      }
+
+      const from = confirmSealBtn.getBoundingClientRect();
+      const to = futureJar.getBoundingClientRect();
+      const startX = from.left + (from.width / 2) - 15;
+      const startY = from.top + (from.height / 2) - 15;
+      const endX = to.left + (to.width / 2) - 15;
+      const endY = to.top + (to.height * 0.3) - 15;
+
+      fallingNoteFx.style.left = `${startX}px`;
+      fallingNoteFx.style.top = `${startY}px`;
+      fallingNoteFx.style.setProperty("--note-dx", `${endX - startX}px`);
+      fallingNoteFx.style.setProperty("--note-dy", `${endY - startY}px`);
+
+      fallingNoteFx.classList.remove("animate");
+      void fallingNoteFx.offsetWidth;
+
+      return new Promise((resolve) => {
+        const onDone = () => {
+          fallingNoteFx.classList.remove("animate");
+          resolve();
+        };
+        fallingNoteFx.addEventListener("animationend", onDone, { once: true });
+        fallingNoteFx.classList.add("animate");
+      });
+    }
+
+    function formatListRow(note, showContent) {
+      const displayNumber = Number.isFinite(Number(note.sequence)) ? Number(note.sequence) : Number(note.id);
+      const statusPill = note.locked
+        ? "<span style='font-size:0.78rem; padding:0.15rem 0.45rem; border-radius:999px; background:#eee4ff; color:#5e4580;'>Sealed</span>"
+        : "<span style='font-size:0.78rem; padding:0.15rem 0.45rem; border-radius:999px; background:#dff5e7; color:#21603a;'>Unlocked</span>";
+
+      const contentHtml = showContent && note.content
+        ? `<div class="note-content">${escapeHtml(note.content)}</div>`
+        : "<div class='sealed-text'>🔒 Note remains sealed until unlock time.</div>";
+
+      return `
+        <div class="note-row">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong style="font-size:0.92rem;">Future Note #${displayNumber}</strong>
+            ${statusPill}
+          </div>
+          <div class="note-meta">Written: ${note.writtenAt || "-"}</div>
+          <div class="note-meta">Unlocks: ${note.unlockAt || "-"}</div>
+          ${contentHtml}
+          <div class="note-actions">
+            <button class="note-delete-btn" onclick="deleteFutureNote(${note.id})">Delete</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderJarScrolls(notes) {
+      if (!jarScrolls) return;
+      const list = Array.isArray(notes) ? notes : [];
+      if (!list.length) {
+        jarScrolls.innerHTML = "";
+        return;
+      }
+
+      const visible = list.slice(-18);
+      jarScrolls.innerHTML = visible
+        .map(note => `<span class="jar-scroll${note.locked ? "" : " unlocked"}"></span>`)
+        .join("");
+    }
+
+    function isNotePresent(payload, noteId) {
+      const allNotes = Array.isArray(payload?.allNotes) ? payload.allNotes : [];
+      const target = Number(noteId);
+      return allNotes.some(note => Number(note.id) === target);
+    }
+
+    function renderFutureNotes(payload) {
+      const allNotes = Array.isArray(payload.allNotes) ? payload.allNotes : [];
+      const unlockedNotes = Array.isArray(payload.unlockedNotes) ? payload.unlockedNotes : [];
+      const sequencedAllNotes = allNotes.map((note, index) => ({
+        ...note,
+        sequence: index + 1
+      }));
+      const sequenceById = new Map(
+        sequencedAllNotes.map(note => [Number(note.id), note.sequence])
+      );
+      const sequencedUnlockedNotes = unlockedNotes.map((note, index) => ({
+        ...note,
+        locked: false,
+        sequence: sequenceById.get(Number(note.id)) || (index + 1)
+      }));
+
+      lockedCountEl.textContent = String(payload.lockedCount ?? 0);
+      unlockedCountEl.textContent = String(payload.unlockedCount ?? 0);
+      renderJarScrolls(sequencedAllNotes);
+
+      if (!sequencedAllNotes.length) {
+        jarNoteList.innerHTML = "<div class='note-row'>Your jar is empty. Seal your first future note.</div>";
+      } else {
+        jarNoteList.innerHTML = sequencedAllNotes.map(note => formatListRow(note, !note.locked)).join("");
+      }
+
+      if (!sequencedUnlockedNotes.length) {
+        unlockedNoteList.innerHTML = "<div class='note-row'>No unlocked notes yet.</div>";
+      } else {
+        unlockedNoteList.innerHTML = sequencedUnlockedNotes.map(note => formatListRow(note, true)).join("");
+      }
+
+      const unread = Number(payload.unreadUnlockedCount || 0);
+      if (unread > 0) {
+        unlockNotice.dataset.unreadCount = String(unread);
+        if (isNoticeDismissed(unread)) {
+          unlockNotice.classList.remove("show");
+        } else {
+          unlockNoticeText.textContent = unread === 1
+            ? "🔓 Your note has unlocked."
+            : `🔓 ${unread} notes have unlocked.`;
+          unlockNotice.classList.add("show");
+        }
+      } else {
+        clearDismissedUnreadCount();
+        unlockNotice.dataset.unreadCount = "0";
+        unlockNotice.classList.remove("show");
+      }
+
+      switchNoteView(activeView, true);
+    }
+
+    function switchNoteView(view, keepJarState) {
+      activeView = view === "unlocked" ? "unlocked" : "jar";
+      const showJar = activeView === "jar";
+      jarTabButton.classList.toggle("active", showJar);
+      unlockedTabButton.classList.toggle("active", !showJar);
+      jarNoteList.style.display = showJar && jarExpandedByClick ? "block" : "none";
+      unlockedNoteList.style.display = showJar ? "none" : "block";
+      if (!keepJarState && showJar) {
+        jarExpandedByClick = true;
+        jarNoteList.style.display = "block";
+      }
+    }
+
+    function toggleJarList() {
+      switchNoteView("jar", true);
+      jarExpandedByClick = !jarExpandedByClick;
+      jarNoteList.style.display = jarExpandedByClick ? "block" : "none";
+    }
+
+    async function deleteFutureNote(noteId) {
+      if (!Number.isFinite(Number(noteId))) {
+        showStatus("Invalid note selected.", "error");
+        return;
+      }
+
+      if (!window.confirm("Delete this future note? This cannot be undone.")) {
+        return;
+      }
+
+      showStatus("Deleting note...", "info");
+      try {
+        let response = await fetch(`/api/future-notes/${noteId}/delete`, {
+          method: "POST",
+          credentials: "same-origin",
+          cache: "no-store"
+        });
+
+        if (response.status === 404 || response.status === 405) {
+          response = await fetch("/api/future-notes/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            cache: "no-store",
+            body: JSON.stringify({ id: noteId })
+          });
+        }
+
+        if (response.status === 404 || response.status === 405) {
+          response = await fetch(`/api/future-notes/${noteId}`, {
+            method: "DELETE",
+            credentials: "same-origin",
+            cache: "no-store"
+          });
+        }
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const refreshed = await loadFutureNotes();
+          if (refreshed && !isNotePresent(refreshed, noteId)) {
+            showStatus("Future note deleted.", "success");
+            return;
+          }
+          showStatus(normalizeErrorMessage(data.error, "Could not delete note right now."), "error");
+          return;
+        }
+        const refreshed = await loadFutureNotes();
+        if (refreshed && isNotePresent(refreshed, noteId)) {
+          showStatus("Could not delete note right now.", "error");
+          return;
+        }
+        showStatus(data.message || "Future note deleted.", "success");
+      } catch (error) {
+        showStatus("Network issue while deleting note. Please retry.", "error");
+      }
+    }
+
+    async function sealFutureNote() {
+      const content = futureNoteInput.value.trim();
+      if (!content) {
+        showStatus("Please write your future note first.", "error");
+        return;
+      }
+
+      if (!pendingUnlockAt) {
+        const unlock = getSelectedUnlockDateTime();
+        if (unlock.error) {
+          showStatus(unlock.error, "error");
+          return;
+        }
+        pendingUnlockAt = unlock.iso;
+        sealConfirmText.textContent = unlock.display;
+        sealConfirmBox.style.display = "block";
+      }
+
+      sealPreviewBtn.disabled = true;
+      confirmSealBtn.disabled = true;
+      showStatus("Sealing your note...", "info");
+      try {
+        await playNoteDropAnimation();
+        const response = await fetch("/api/future-notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ content, unlockAt: pendingUnlockAt })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          showStatus(data.error || "Could not seal note right now.", "error");
+          return;
+        }
+        futureNoteInput.value = "";
+        resetSealConfirmation();
+        initializeUnlockSelectors(getDefaultUnlockDate());
+        showStatus(data.message || "Future note sealed.", "success");
+        await loadFutureNotes();
+      } catch (error) {
+        showStatus("Network issue while sealing note. Please retry.", "error");
+      } finally {
+        sealPreviewBtn.disabled = false;
+        confirmSealBtn.disabled = false;
+      }
+    }
+
+    async function loadFutureNotes() {
+      try {
+        const response = await fetch(`/api/future-notes?_=${Date.now()}`, {
+          credentials: "same-origin",
+          cache: "no-store"
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          showStatus(normalizeErrorMessage(data.error, "Could not load future notes."), "error");
+          return null;
+        }
+        if ((saveStatus.textContent || "").trim().toLowerCase() === "not found") showStatus("", "info");
+        renderFutureNotes(data);
+
+        if (openUnlockedFromQuery && activeView !== "unlocked") {
+          switchNoteView("unlocked");
+          try {
+            await fetch("/api/future-notes/acknowledge", {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store"
+            });
+          } catch (error) {
+            // silent
+          }
+          openUnlockedFromQuery = false;
+        }
+        return data;
+      } catch (error) {
+        showStatus("Could not load notes. Please retry.", "error");
+        return null;
+      }
+    }
+
+    function startAutoRefresh() {
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+      }
+      autoRefreshTimer = setInterval(function () {
+        if (document.visibilityState === "visible") {
+          loadFutureNotes();
+        }
+      }, AUTO_REFRESH_MS);
+    }
+
+    async function openUnlockedNotesFromNotice() {
+      const unread = Number(unlockNotice.dataset.unreadCount || 0);
+      setDismissedUnreadCount(unread);
+      switchNoteView("unlocked");
+      unlockNotice.classList.remove("show");
+      try {
+        await fetch("/api/future-notes/acknowledge", {
+          method: "POST",
+          credentials: "same-origin",
+          cache: "no-store"
+        });
+      } catch (error) {
+        // silent
+      }
+      await loadFutureNotes();
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      applyTheme(selectedTheme);
+      initializeUnlockSelectors(getDefaultUnlockDate());
+
+      futureUnlockMonth.addEventListener("change", function () {
+        updateUnlockDayOptions();
+        resetSealConfirmation();
+      });
+
+      futureUnlockYear.addEventListener("change", function () {
+        updateUnlockDayOptions();
+        resetSealConfirmation();
+      });
+
+      futureUnlockDay.addEventListener("change", resetSealConfirmation);
+      futureUnlockTime.addEventListener("change", resetSealConfirmation);
+      futureNoteInput.addEventListener("input", resetSealConfirmation);
+
+      jarExpandedByClick = false;
+      jarNoteList.style.display = "none";
+      loadFutureNotes();
+      startAutoRefresh();
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible") {
+          loadFutureNotes();
+        }
+      });
+
+      window.addEventListener("storage", function (event) {
+        if (event.key === NOTICE_DISMISS_KEY) {
+          loadFutureNotes();
+        }
+      });
+
+      window.addEventListener("zynee-future-note-dismiss", function () {
+        const unread = Number(unlockNotice.dataset.unreadCount || 0);
+        if (isNoticeDismissed(unread)) {
+          unlockNotice.classList.remove("show");
+        } else if (unread > 0) {
+          unlockNotice.classList.add("show");
+        }
+      });
+    });
+  </script>
+
+  <script id="sessionBackGuard">
+    (function () {
+      function needsRefresh() {
+        var nav = (performance.getEntriesByType && performance.getEntriesByType("navigation")) || [];
+        return nav.length > 0 && nav[0].type === "back_forward";
+      }
+
+      window.addEventListener("pageshow", function (event) {
+        if (event.persisted || needsRefresh()) {
+          window.location.reload();
+        }
+      });
+    })();
+  </script>
+
+  <div id="floatingCompanionConfig"
+       th:if="${session.email != null}"
+       th:attr="data-session-key=${session.assistantSessionKey},data-user-id=${session.userId},data-user-name=${session.name},data-country-code=${session.countryCode}"
+       style="display:none;"></div>
+  <script src="/js/future-note-notifier.js"></script>
+  <script src="/js/floating-companion.js"></script>
+</body>
+</html>

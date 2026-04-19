@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <script th:inline="javascript">
+    window.ZYNEE_IS_GUEST = /*[[${session.isGuest == true}]]*/ false;
+  </script>
+  <script src="/js/guest-access-guard.js"></script>
+  <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zyneé | My Journal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/responsive.css" />
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Indie+Flower&family=Amatic+SC&family=Pacifico&family=Shadows+Into+Light&family=Kaushan+Script&family=Handlee&family=Gloria+Hallelujah&family=Josefin+Sans&family=Quicksand&family=PT+Serif&family=Roboto+Mono&family=DM+Serif+Display&family=Special+Elite&family=Poiret+One&family=Raleway&family=Comfortaa&family=Kalam&family=Zeyada&family=Fira+Sans&family=Work+Sans&family=Merriweather&family=Nanum+Pen+Script&family=Patrick+Hand&family=Source+Code+Pro&family=Courier+Prime&family=Cabin+Sketch&family=Orbitron&family=Open+Sans&family=Coming+Soon&display=swap" rel="stylesheet">
+  
+
+  <style>
+    :root {
+      --notebook-bg: #fff;
+      --notebook-color: #6b5c7d;
+      --notebook-lines: repeating-linear-gradient(#fff, #fff 28px, #f2c0f9 28px, #f2c0f9 29px);
+      --text-color: #222;
+      --counter-color: #6b5c7d;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background 0.4s ease, color 0.3s ease;
+    }
+
+    .default-mode {
+      background: linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5);
+      background-size: 400% 400%;
+      animation: dreamyBG 15s ease infinite;
+    }
+
+    @keyframes dreamyBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .light-mode {
+      background: #fdfdfd;
+      --notebook-bg: #fff;
+      --notebook-color: #6b5c7d;
+      --notebook-lines: repeating-linear-gradient(#f9f9f9, #f9f9f9 28px, #e0e0e0 28px, #e0e0e0 29px);
+      --text-color: #222;
+      --counter-color: #555;
+    }
+
+    .dark-mode {
+  background: #1c1c2e;
+  --notebook-bg: #ffffff; /* notebook remains white */
+  --notebook-color: #333333; /* dark text on white */
+  --notebook-lines: repeating-linear-gradient(#ffffff, #ffffff 28px, #e0e0e0 28px, #e0e0e0 29px);
+  --text-color: #222;
+  --counter-color: #999;
+}
+
+
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 60px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.2rem;
+      z-index: 998;
+    }
+
+    .hamburger {
+      font-size: 1.6rem;
+      background: none;
+      border: none;
+      color: #8b5da9;
+      cursor: pointer;
+    }
+
+    .top-left-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .journal-lock {
+      font-size: 1.35rem;
+      background: none;
+      border: none;
+      color: #8b5da9;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 0.2rem;
+    }
+
+    .journal-lock:hover {
+      transform: scale(1.06);
+    }
+
+    .profile-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #ccc;
+      border: 2px solid white;
+      cursor: pointer;
+    }
+
+    .search-bar {
+      width: 200px;
+      transition: width 0.3s ease;
+      padding: 6px 12px;
+      border-radius: 2rem;
+      border: 1px solid #ddd;
+      background-color: rgba(255, 255, 255, 0.85);
+      outline: none;
+    }
+
+    .search-bar:focus {
+      width: 300px;
+      background-color: white;
+    }
+
+    .suggestions {
+      position: fixed;
+      top: calc(60px + 0.1cm);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      background: white;
+      padding: 0.8rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      z-index: 997;
+      display: none;
+    }
+
+    .suggestions.show {
+      display: block;
+    }
+
+    .suggestions div {
+      padding: 0.3rem 0;
+      cursor: pointer;
+    }
+
+    .suggestions div:hover {
+      color: #8b5da9;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      width: 240px;
+      height: calc(100vh - 60px);
+      background-color: var(--notebook-bg);
+      box-shadow: 2px 2px 15px rgba(190, 160, 255, 0.2);
+      padding: 1rem;
+      transform: translateX(-100%);
+      transition: transform 0.4s ease, background-color 0.3s ease;
+      z-index: 997;
+      border-top-right-radius: 1rem;
+      border-bottom-right-radius: 1rem;
+      overflow-y: auto;
+    }
+
+    .sidebar.open {
+      transform: translateX(0);
+    }
+
+    .sidebar h4 {
+      font-size: 1.4rem;
+      color: #8b5da9;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+   .sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar ul li {
+  padding: 0.6rem 0;
+  color: #6b5c7d;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.sidebar ul li:hover {
+  color: #8b5da9;
+}
+
+
+    .theme-options {
+      margin-top: 0.5rem;
+      margin-left: 1.2rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.95rem;
+      color: #6b5c7d;
+    }
+
+    .theme-options.active {
+      display: flex;
+    }
+
+    .theme-option {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .theme-option .dot {
+      height: 0.6rem;
+      width: 0.6rem;
+      border-radius: 50%;
+      border: 1px solid #6b5c7d;
+      background-color: transparent;
+    }
+
+    .theme-option.selected .dot {
+      background-color: #8b5da9;
+    }
+
+    #hueSliderContainer {
+      display: none;
+      margin-top: 1rem;
+      margin-left: 1.8rem;
+      height: 140px;
+      position: relative;
+    }
+
+    #hueSlider {
+      writing-mode: bt-lr;
+      appearance: slider-vertical;
+      -webkit-appearance: slider-vertical;
+      width: 20px;
+      height: 100%;
+      transform: rotate(180deg);
+    }
+
+    .main {
+      margin-top: calc(60px + 0.1cm);
+      margin-left: 0;
+      padding: 2rem;
+      transition: margin-left 0.4s ease, margin-top 0.4s ease;
+    }
+
+    .main.shifted {
+      margin-left: calc(240px + 0.1cm);
+    }
+
+    .main.pushed-down {
+      margin-top: calc(60px + 0.1cm + 3.2rem);
+    }
+
+    .notebook-box {
+      background: var(--notebook-bg);
+      color: var(--notebook-color);
+      padding: 2rem;
+      border-radius: 1.5rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      max-width: 800px;
+      width: 100%;
+      margin: auto;
+    }
+
+    .notebook-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .notebook-header h3 {
+      margin: 0;
+      font-size: 1.75rem;
+      font-weight: 500;
+      color: #6b5c7d;
+    }
+
+    .timestamp {
+      text-align: center;
+      font-weight: bold;
+      color: #8b5da9;
+      margin-bottom: 1rem;
+    }
+
+    .journal-textarea {
+      width: 100%;
+      min-height: 360px;
+      padding: 29px 1rem 1rem 1rem;
+      border: none;
+      border-radius: 1rem;
+      resize: vertical;
+      background-image: var(--notebook-lines);
+      background-size: 100% 29px;
+      color: var(--text-color);
+      font-size: 1rem;
+      line-height: 29px;
+      font-family: 'Dancing Script', cursive;
+      transition: background-color 0.4s ease;
+    }
+
+    .journal-textarea:focus {
+      outline: none;
+    }
+
+    .cute-button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 2rem;
+      background-color: #f4d9ff;
+      color: #8b5da9;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .cute-button:hover {
+      background-color: #e5c8f5;
+      transform: scale(1.05);
+    }
+
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1rem;
+    }
+
+    .char-count {
+      text-align: right;
+      font-size: 0.9rem;
+      color: var(--counter-color);
+      margin-top: 0.5rem;
+    }
+
+    /* Simple swipe animation for Prev/Next */
+    .notebook-box {
+      position: relative;
+      will-change: transform, opacity;
+    }
+
+    .flip-animation-next {
+      animation: swipeNext 0.32s ease;
+    }
+
+    .flip-animation-prev {
+      animation: swipePrev 0.32s ease;
+    }
+
+    @keyframes swipeNext {
+      0% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      49% {
+        transform: translateX(-36px);
+        opacity: 0.2;
+      }
+      50% {
+        transform: translateX(36px);
+        opacity: 0.2;
+      }
+      100% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes swipePrev {
+      0% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      49% {
+        transform: translateX(36px);
+        opacity: 0.2;
+      }
+      50% {
+        transform: translateX(-36px);
+        opacity: 0.2;
+      }
+      100% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+.main-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: calc(60px + 0.1cm);
+  margin-left: 0;
+  transition: margin-left 0.4s ease, margin-top 0.4s ease;
+  padding: 2rem;
+}
+#profileCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  border: 2px solid white;
+  cursor: pointer;
+  background-color: #8b5da9; /* default fallback */
+}
+
+.pin-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(24, 19, 32, 0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 1rem;
+}
+
+.pin-overlay.active {
+  display: flex;
+}
+
+.pin-banner {
+  width: min(620px, 95vw);
+  background: var(--notebook-bg);
+  color: var(--notebook-color);
+  border-radius: 1.2rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  padding: 1rem 1.1rem 1.2rem;
+}
+
+.pin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.pin-header h4 {
+  margin: 0;
+}
+
+.pin-close {
+  border: none;
+  background: transparent;
+  font-size: 1.3rem;
+  color: #8b5da9;
+  cursor: pointer;
+}
+
+.pin-message {
+  display: none;
+  font-size: 0.93rem;
+  border-radius: 0.7rem;
+  padding: 0.45rem 0.6rem;
+  margin-bottom: 0.7rem;
+  min-height: 1.2rem;
+  border: 1px solid transparent;
+}
+
+.pin-message.show {
+  display: block;
+}
+
+.pin-message.info {
+  color: #6b5c7d;
+  background: #f4efff;
+  border-color: #e3d6f4;
+}
+
+.pin-message.success {
+  color: #1f7a45;
+  background: #eaf8f0;
+  border-color: #caecd9;
+}
+
+.pin-message.error {
+  color: #b03d48;
+  background: #fdecef;
+  border-color: #f6cfd6;
+}
+
+.pin-view {
+  display: none;
+}
+
+.pin-view.active {
+  display: block;
+}
+
+.pin-row {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.pin-field {
+  flex: 1 1 220px;
+}
+
+.pin-field label {
+  display: block;
+  font-size: 0.86rem;
+  margin-bottom: 0.25rem;
+}
+
+.pin-field input,
+.pin-field select {
+  width: 100%;
+  border-radius: 0.7rem;
+  border: 1px solid #d9c4eb;
+  padding: 0.5rem 0.65rem;
+}
+
+.pin-box-row {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.pin-digit {
+  width: 2.3rem;
+  height: 2.5rem;
+  text-align: center;
+  border-radius: 0.6rem;
+  border: 1px solid #d9c4eb;
+  font-size: 1.06rem;
+  font-weight: 600;
+  background: #fff;
+  color: #4b3e62;
+}
+
+.pin-digit:focus {
+  outline: none;
+  border-color: #9a70bf;
+  box-shadow: 0 0 0 2px rgba(154, 112, 191, 0.17);
+}
+
+.pin-actions {
+  margin-top: 0.9rem;
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.pin-btn {
+  border: none;
+  border-radius: 1.5rem;
+  padding: 0.45rem 0.95rem;
+  background: #f4d9ff;
+  color: #7a4c95;
+  font-size: 0.92rem;
+}
+
+.pin-btn.secondary {
+  background: #ece7f8;
+  color: #5f5f72;
+}
+
+.pin-btn.danger {
+  background: #ffe3e6;
+  color: #b03d48;
+}
+  </style>
+</head>
+<body>
+<!-- ... KEEP REST OF YOUR BODY AND SCRIPT EXACTLY SAME ... -->
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="top-left-controls">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <button id="journalLockButton" class="journal-lock" onclick="openJournalPinManager()" title="Journal PIN">🔒</button>
+    </div>
+    <input type="text" id="searchInput" class="search-bar" placeholder="Search Zyneé..." onfocus="expandSearch()" onblur="shrinkSearch()" oninput="showSuggestions(this.value)" />
+    <div id="suggestionsBox" class="suggestions"></div>
+    <a href="/profile.html" class="ms-3" style="text-decoration: none;">
+  <div th:if="${session.profilePhoto == null or session.profilePhoto == ''}"
+       id="profileCircle"
+       th:text="${session.initials}"
+       th:style="'background-color:' + ${session.profileColor}">
+  </div>
+
+  <img th:if="${session.profilePhoto != null and session.profilePhoto != ''}"
+       th:src="@{${session.profilePhoto}}"
+       alt="Profile"
+       style="width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              object-fit: cover;
+              cursor: pointer;" />
+</a>
+ </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="sidebar">
+    <h4>Menu</h4>
+    <ul>
+      <li onclick="window.location.href='/home.html'">🏠 Home</li>
+      <li onclick="window.location.href='/journal.html'">📖 My Journal</li>
+      <li onclick="window.location.href='/stats.html'">📊 Stats</li>
+      <li onclick="window.location.href='/mood.html'">😊 Mood Tracker</li>
+      <li onclick="window.location.href='/quick-checkin.html'">⚡ Quick Check-In</li>
+      <li onclick="window.location.href='/affirmation.html'">🌟 Affirmations</li>
+      <li onclick="window.location.href='/candle.html'">🕯️ Candle</li>
+      <li onclick="window.location.href='/music.html'">🎵 Music</li>
+    <li onclick="window.location.href='/ai-assistant.html'">🤖 Emotional Assistant</li>
+      <li onclick="window.location.href='/future-notes.html'">🫙 Future Notes</li>
+      <li onclick="window.location.href='/insights.html'">🧠 Insights</li>
+      <li onclick="toggleThemeMenu()">🎨 Theme</li>
+      <div id="themeMenu" class="theme-options">
+        <div class="theme-option" onclick="applyTheme('default')"><div class="dot"></div> Default Mode</div>
+        <div class="theme-option" onclick="applyTheme('light')"><div class="dot"></div> Light Mode</div>
+        <div class="theme-option" onclick="applyTheme('dark')"><div class="dot"></div> Dark Mode</div>
+        <div class="theme-option" onclick="applyTheme('custom')"><div class="dot"></div> Custom Mode</div>
+        <div id="hueSliderContainer">
+          <input type="range" id="hueSlider" min="0" max="360" value="270" oninput="updateHue(this.value)">
+        </div>
+      </div>
+      <li onclick="window.location.href='/about.html'">ℹ️ About</li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+ <div id="mainContent" class="main-wrapper">
+    <div class="notebook-box" id="journalBox">
+      <div class="notebook-header">
+        <!-- Add inside .notebook-header -->
+<label for="textColorPicker" class="ms-3">Color:</label>
+<input type="color" id="textColorPicker" value="#6b5c7d" onchange="changeTextColor(this.value)" />
+
+        <h3>📖 Today's Journal</h3>
+        <select id="fontSelector" class="form-select form-select-sm" style="width:auto;" onchange="changeFont(this.value)">
+            <option value="'Segoe UI', sans-serif" selected>Segoe UI</option>
+  <option value="'Dancing Script', cursive">Cursive</option>
+  <option value="'Courier New', monospace">Typewriter</option>
+  <option value="'Comic Sans MS', cursive">Comic</option>
+  <option value="'Georgia', serif">Georgia</option>
+  <option value="'Dancing Script', cursive">Dancing Script</option>
+  <option value="'Architects Daughter', cursive">Architects Daughter</option>
+  <option value="'Indie Flower', cursive">Indie Flower</option>
+  <option value="'Amatic SC', cursive">Amatic SC</option>
+  <option value="'Pacifico', cursive">Pacifico</option>
+  <option value="'Shadows Into Light', cursive">Shadows Into Light</option>
+  <option value="'Kaushan Script', cursive">Kaushan Script</option>
+  <option value="'Handlee', cursive">Handlee</option>
+  <option value="'Gloria Hallelujah', cursive">Gloria Hallelujah</option>
+  <option value="'Josefin Sans', sans-serif">Josefin Sans</option>
+  <option value="'Quicksand', sans-serif">Quicksand</option>
+  <option value="'PT Serif', serif">PT Serif</option>
+  <option value="'Roboto Mono', monospace">Roboto Mono</option>
+  <option value="'DM Serif Display', serif">DM Serif Display</option>
+  <option value="'Special Elite', cursive">Special Elite</option>
+  <option value="'Poiret One', cursive">Poiret One</option>
+  <option value="'Raleway', sans-serif">Raleway</option>
+  <option value="'Comfortaa', cursive">Comfortaa</option>
+  <option value="'Kalam', cursive">Kalam</option>
+  <option value="'Zeyada', cursive">Zeyada</option>
+  <option value="'Fira Sans', sans-serif">Fira Sans</option>
+  <option value="'Work Sans', sans-serif">Work Sans</option>
+  <option value="'Merriweather', serif">Merriweather</option>
+  <option value="'Nanum Pen Script', cursive">Nanum Pen Script</option>
+  <option value="'Patrick Hand', cursive">Patrick Hand</option>
+  <option value="'Source Code Pro', monospace">Source Code Pro</option>
+  <option value="'Courier Prime', monospace">Courier Prime</option>
+  <option value="'Cabin Sketch', cursive">Cabin Sketch</option>
+  <option value="'Orbitron', sans-serif">Orbitron</option>
+  <option value="'Open Sans', sans-serif">Open Sans</option>
+  <option value="'Coming Soon', cursive">Coming Soon</option>
+</select>
+<select id="fontSizeSelector" class="form-select form-select-sm ms-2" style="width:auto;" onchange="changeFontSize(this.value)">
+  <option value="14px">14px</option>
+  <option value="16px">16px</option>
+  <option value="18px">18px</option>
+  <option value="20px">20px</option>
+  <option value="22px">22px</option>
+  <option value="24px">24px</option>
+  <option value="28px">28px</option>
+  <option value="32px">32px</option>
+</select>
+
+      </div>
+      <div class="timestamp" id="timestampBox">
+  📅 <input type="date" id="journalDate" class="form-control d-inline-block" style="width: auto;">
+  🕒 <input type="time" id="journalTime" class="form-control d-inline-block" style="width: auto;">
+</div>
+      <textarea id="journalEntry" class="journal-textarea" placeholder="Start writing..." oninput="updateCounter()"></textarea>
+      <div class="char-count" id="charCounter">0 characters</div>
+      <div class="controls">
+        <button class="cute-button" onclick="goToPreviousDay()">⏮ Previous</button>
+        <button class="cute-button" onclick="goToNextDay()">⏭ Next</button>
+      </div>
+      <div class="mt-3 text-center">
+        <button class="cute-button" onclick="saveJournal()">💾 Save Entry</button>
+        <button class="cute-button mt-2" onclick="requestViewEntries()">📚 View Entries</button>
+      </div>
+    </div>
+  </main>
+
+  <div id="journalPinOverlay" class="pin-overlay">
+    <div class="pin-banner">
+      <div class="pin-header">
+        <h4 id="pinBannerTitle">Journal PIN</h4>
+        <button class="pin-close" onclick="closeJournalPinOverlay()" aria-label="Close">✕</button>
+      </div>
+      <div id="pinBannerMessage" class="pin-message"></div>
+
+      <div id="pinSetupView" class="pin-view">
+        <div class="pin-row">
+          <div class="pin-field">
+            <label for="setupPinLength">PIN Length</label>
+            <select id="setupPinLength" onchange="syncPinInputLimits()">
+              <option value="4">4 digits</option>
+              <option value="6">6 digits</option>
+            </select>
+          </div>
+          <div class="pin-field">
+            <label for="setupPin">Set PIN</label>
+            <div id="setupPinBoxes" class="pin-box-row"></div>
+            <input type="hidden" id="setupPin" />
+          </div>
+          <div class="pin-field">
+            <label for="setupPinConfirm">Confirm PIN</label>
+            <div id="setupPinConfirmBoxes" class="pin-box-row"></div>
+            <input type="hidden" id="setupPinConfirm" />
+          </div>
+        </div>
+        <div class="pin-actions">
+          <button class="pin-btn" onclick="submitPinSetup()">Save PIN</button>
+          <button class="pin-btn secondary" onclick="closeJournalPinOverlay()">Cancel</button>
+        </div>
+      </div>
+
+      <div id="pinManageView" class="pin-view">
+        <div class="pin-actions">
+          <button class="pin-btn" onclick="openPinView('change')">Change PIN</button>
+          <button class="pin-btn danger" onclick="openPinView('remove')">Remove PIN</button>
+          <button class="pin-btn secondary" onclick="closeJournalPinOverlay()">Close</button>
+        </div>
+      </div>
+
+      <div id="pinVerifyView" class="pin-view">
+        <div class="pin-row">
+          <div class="pin-field">
+            <label for="verifyPin">Enter PIN</label>
+            <div id="verifyPinBoxes" class="pin-box-row"></div>
+            <input type="hidden" id="verifyPin" />
+          </div>
+        </div>
+        <div class="pin-actions">
+          <button class="pin-btn" onclick="submitPinVerification()">Unlock</button>
+          <button class="pin-btn secondary" onclick="closeJournalPinOverlay()">Cancel</button>
+        </div>
+      </div>
+
+      <div id="pinChangeView" class="pin-view">
+        <div class="pin-row">
+          <div class="pin-field">
+            <label for="changeCurrentPin">Current PIN</label>
+            <div id="changeCurrentPinBoxes" class="pin-box-row"></div>
+            <input type="hidden" id="changeCurrentPin" />
+          </div>
+          <div class="pin-field">
+            <label for="changePinLength">New PIN Length</label>
+            <select id="changePinLength" onchange="syncPinInputLimits()">
+              <option value="4">4 digits</option>
+              <option value="6">6 digits</option>
+            </select>
+          </div>
+          <div class="pin-field">
+            <label for="changeNewPin">New PIN</label>
+            <div id="changeNewPinBoxes" class="pin-box-row"></div>
+            <input type="hidden" id="changeNewPin" />
+          </div>
+          <div class="pin-field">
+            <label for="changeNewPinConfirm">Confirm New PIN</label>
+            <div id="changeNewPinConfirmBoxes" class="pin-box-row"></div>
+            <input type="hidden" id="changeNewPinConfirm" />
+          </div>
+        </div>
+        <div class="pin-actions">
+          <button class="pin-btn" onclick="submitPinChange()">Update PIN</button>
+          <button class="pin-btn secondary" onclick="openPinView('manage')">Back</button>
+        </div>
+      </div>
+
+      <div id="pinRemoveView" class="pin-view">
+        <div class="pin-row">
+          <div class="pin-field">
+            <label for="removeCurrentPin">Current PIN</label>
+            <div id="removeCurrentPinBoxes" class="pin-box-row"></div>
+            <input type="hidden" id="removeCurrentPin" />
+          </div>
+        </div>
+        <div class="pin-actions">
+          <button class="pin-btn danger" onclick="submitPinRemove()">Remove PIN</button>
+          <button class="pin-btn secondary" onclick="openPinView('manage')">Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ YOUR HTML REMAINS THE SAME UP TO THE SCRIPT SECTION -->
+
+<script>
+  const suggestionsData = [
+  { label: "My Journal", url: "/journal.html" },
+  { label: "View Journal Entries", url: "/view-entries" },
+  { label: "Statistics", url: "/stats.html" },
+  { label: "Add Mood", url: "/mood.html" },
+  { label: "Quick Check-In", url: "/quick-checkin.html" },
+  { label: "Affirmations", url: "/affirmation.html" },
+  { label: "Virtual Candle", url: "/candle.html" },
+  { label: "Music", url: "/music.html" },
+  { label: "Emotional Assistant", url: "/ai-assistant.html" },
+  { label: "Future Notes", url: "/future-notes.html" },
+  { label: "Insights", url: "/insights.html" },
+  { label: "Profile", url: "/profile.html" },
+  { label: "About", url: "/about.html" },
+];
+
+  let selectedTheme = localStorage.getItem("zyneeTheme") || "default";
+  let savedHue = localStorage.getItem("zyneeHue") || "270";
+
+  const sidebar = document.getElementById("sidebar");
+  const main = document.getElementById("mainContent");
+  const themeMenu = document.getElementById("themeMenu");
+  const journalBox = document.getElementById("journalBox");
+  const journalEntry = document.getElementById("journalEntry");
+  const charCounter = document.getElementById("charCounter");
+  let userManuallySetTime = false;
+
+  function pad2(value) {
+    return value.toString().padStart(2, "0");
+  }
+
+  function getCurrentTimeHHMM() {
+    const now = new Date();
+    return `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+  }
+
+  function formatIsoDate(dateObj) {
+    return `${dateObj.getFullYear()}-${pad2(dateObj.getMonth() + 1)}-${pad2(dateObj.getDate())}`;
+  }
+
+  function parseIsoDateToLocal(isoDate) {
+    if (!isoDate) return new Date();
+    const parts = isoDate.split("-").map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return new Date();
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+  }
+
+  function formatPrettyDate(isoDate) {
+    if (!isoDate) return "";
+    const dateObj = parseIsoDateToLocal(isoDate);
+    const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+    return `${dateObj.getDate()} ${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+  }
+
+  function updatePrettyDateLabel() {
+    const dateInput = document.getElementById("journalDate");
+    const pretty = document.getElementById("journalDatePretty");
+    if (!dateInput || !pretty) return;
+    pretty.textContent = formatPrettyDate(dateInput.value);
+  }
+
+  function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    const wrapper = document.getElementById("mainContent");
+    const themeMenu = document.getElementById("themeMenu");
+  
+    if (!sidebar.classList.contains("open")) {
+      closeAllExcept('sidebar');
+      sidebar.classList.add("open");
+      wrapper.style.marginLeft = "240px";
+    } else {
+      sidebar.classList.remove("open");
+      wrapper.style.marginLeft = "0";
+      themeMenu.classList.remove("active");
+    }
+  }
+
+  function expandSearch() {
+    closeAllExcept("search");
+    document.getElementById("suggestionsBox").classList.add("show");
+    document.getElementById("mainContent").style.marginTop = "calc(60px + 0.1cm + 3.2rem)";
+  }
+
+  function shrinkSearch() {
+    setTimeout(() => {
+      document.getElementById("suggestionsBox").classList.remove("show");
+      document.getElementById("mainContent").style.marginTop = "calc(60px + 0.1cm)";
+    }, 150);
+  }
+
+  function showSuggestions(value) {
+  const filtered = suggestionsData.filter(item =>
+    item.label.toLowerCase().includes(value.toLowerCase())
+  );
+
+  suggestionsBox.innerHTML = filtered.length
+    ? filtered.map(item => `<div data-url="${item.url}" onclick="goToSuggestion('${item.url}')">${item.label}</div>`).join("")
+    : "<div>No matches found</div>";
+}
+
+function goToSuggestion(url) {
+  suggestionsBox.classList.remove("show");
+  mainContent.classList.remove("pushed-down");
+
+  if (url.startsWith("#")) {
+    document.querySelector(url)?.scrollIntoView({ behavior: "smooth" });
+  } else {
+    window.location.href = url;
+  }
+}
+
+  function toggleThemeMenu() {
+    closeAllExcept('theme');
+    document.getElementById("themeMenu").classList.toggle("active");
+  }
+
+  function applyTheme(mode) {
+    selectedTheme = mode;
+    document.body.classList.remove("default-mode", "light-mode", "dark-mode");
+    document.body.classList.add(`${mode}-mode`);
+    localStorage.setItem("zyneeTheme", mode);
+
+    const savedFontSize = localStorage.getItem("zyneeFontSize") || "22px";
+    journalEntry.style.fontSize = savedFontSize;
+    document.getElementById("fontSizeSelector").value = savedFontSize;
+
+    document.querySelectorAll(".theme-option").forEach(opt =>
+      opt.classList.remove("selected")
+    );
+    const selected = [...document.querySelectorAll(".theme-option")].find(opt =>
+      opt.textContent.toLowerCase().includes(mode)
+    );
+    if (selected) selected.classList.add("selected");
+
+    const hueContainer = document.getElementById("hueSliderContainer");
+    if (mode === "custom") {
+      hueContainer.style.display = "block";
+      updateHue(document.getElementById("hueSlider").value);
+    } else {
+      hueContainer.style.display = "none";
+
+      if (mode === "default") {
+        document.body.style.background = "linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5)";
+        sidebar.style.backgroundColor = "#ffffff";
+        journalBox.style.backgroundColor = "rgba(255, 255, 255, 0.85)";
+        journalBox.style.color = "#6b5c7d";
+      } else if (mode === "light") {
+        document.body.style.background = "#ffffff";
+        sidebar.style.backgroundColor = "#ffffff";
+        journalBox.style.backgroundColor = "#ffffff";
+        journalBox.style.color = "#333333";
+      } else if (mode === "dark") {
+        document.body.style.background = "#1c1c1e";
+        sidebar.style.backgroundColor = "#2c2c2e";
+        journalBox.style.backgroundColor = "#2c2c2e";
+        journalBox.style.color = "#ffffff";
+      }
+    }
+  }
+
+  function updateHue(hueValue) {
+    if (selectedTheme !== "custom") return;
+    const h = parseInt(hueValue);
+    document.body.style.background = `hsl(${h}, 70%, 90%)`;
+    sidebar.style.backgroundColor = `hsl(${h}, 40%, 85%)`;
+    journalBox.style.backgroundColor = `hsl(${h}, 40%, 90%)`;
+    journalBox.style.color = `hsl(${h}, 20%, 25%)`;
+    journalEntry.style.backgroundImage = "";
+    journalEntry.style.color = "";
+    charCounter.style.color = `hsl(${h}, 15%, 35%)`;
+    localStorage.setItem("zyneeHue", hueValue);
+  }
+
+  function closeAllExcept(active) {
+    const sidebar = document.getElementById("sidebar");
+    const box = document.getElementById("suggestionsBox");
+    const wrapper = document.getElementById("mainContent");
+    const themeMenu = document.getElementById("themeMenu");
+
+    if (active !== 'sidebar' && active !== 'theme') {
+      sidebar.classList.remove("open");
+      wrapper.style.marginLeft = "0";
+    }
+
+    if (active !== 'search') {
+      box.classList.remove("show");
+      wrapper.style.marginTop = "calc(60px + 0.1cm)";
+    }
+
+    if (active !== 'theme') {
+      themeMenu.classList.remove("active");
+    }
+  }
+
+  function changeFont(font) {
+    journalEntry.style.fontFamily = font;
+    const savedTextColor = localStorage.getItem("zyneeTextColor") || "#6b5c7d";
+    journalEntry.style.color = savedTextColor;
+    document.getElementById("textColorPicker").value = savedTextColor;
+  }
+
+  function updateCounter() {
+    charCounter.innerText = `${journalEntry.value.length} characters`;
+  }
+
+  function goToPreviousDay() {
+  triggerPageFlip("prev", -1);
+}
+
+function goToNextDay() {
+  triggerPageFlip("next", 1);
+}
+
+function adjustJournalDate(offsetDays) {
+  const dateInput = document.getElementById("journalDate");
+  const timeInput = document.getElementById("journalTime");
+  if (!dateInput || !timeInput) return;
+
+  const currentDate = dateInput.value || formatIsoDate(new Date());
+  const date = parseIsoDateToLocal(currentDate);
+
+  // Adjust the date
+  date.setDate(date.getDate() + offsetDays);
+
+  const formattedDate = formatIsoDate(date);
+
+  // Update inputs
+  dateInput.value = formattedDate;
+  updatePrettyDateLabel();
+  if (!userManuallySetTime) {
+    timeInput.value = getCurrentTimeHHMM();
+  }
+
+  // Save to localStorage (optional)
+  localStorage.setItem("zyneeJournalDate", formattedDate);
+  localStorage.setItem("zyneeJournalTime", timeInput.value);
+
+  // Optionally, clear the textarea for fresh entry
+  journalEntry.value = '';
+  updateCounter();
+}
+
+  let pageFlipAnimating = false;
+
+  function triggerPageFlip(direction = "next", offsetDays = 1) {
+    const box = document.getElementById("journalBox");
+    if (!box || pageFlipAnimating) return;
+
+    pageFlipAnimating = true;
+    box.classList.remove("flip-animation-prev", "flip-animation-next");
+    void box.offsetWidth;
+
+    const animationClass = direction === "prev" ? "flip-animation-prev" : "flip-animation-next";
+    box.classList.add(animationClass);
+
+    // Swap content at the midpoint of the swipe.
+    setTimeout(() => {
+      adjustJournalDate(offsetDays);
+    }, 155);
+
+    setTimeout(() => {
+      box.classList.remove("flip-animation-prev", "flip-animation-next");
+      pageFlipAnimating = false;
+    }, 340);
+  }
+
+  function saveJournal() {
+  const journalContent = journalEntry.value.trim();
+  const currentDate = document.getElementById("journalDate").value;
+  const currentTime = document.getElementById("journalTime").value;
+
+  if (!journalContent) {
+    alert("Please write something before saving.");
+    return;
+  }
+
+  fetch('/save-journal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      content: journalContent,
+      date: currentDate,
+      time: currentTime
+    })
+  })
+  .then(response => {
+    if (response.ok) {
+      alert("Your journal entry has been successfully saved!");
+
+      // ✅ Clear the journal entry after successful save
+      journalEntry.value = '';
+      updateCounter(); // reset character counter
+
+      if (!userManuallySetTime) {
+        document.getElementById("journalTime").value = getCurrentTimeHHMM();
+      }
+
+      // Clear localStorage saved text
+      localStorage.removeItem("zyneeEntry");
+    } else {
+      alert("Failed to save entry. Please try again.");
+    }
+  })
+  .catch(error => {
+    console.error("Error saving entry:", error);
+    alert("An error occurred. Please try again.");
+  });
+}
+
+  function changeFontSize(size) {
+    journalEntry.style.fontSize = size;
+    localStorage.setItem("zyneeFontSize", size);
+  }
+
+  function changeTextColor(color) {
+    journalEntry.style.color = color;
+    localStorage.setItem("zyneeTextColor", color);
+  }
+
+  let journalPinState = {
+    pinSet: false,
+    pinLength: 4,
+    verified: false,
+    locked: false,
+    lockRemainingSeconds: 0
+  };
+  let pinUnlockTarget = null;
+  let pinLockIntervalId = null;
+  const pinFieldBoxMap = {
+    setupPin: "setupPinBoxes",
+    setupPinConfirm: "setupPinConfirmBoxes",
+    verifyPin: "verifyPinBoxes",
+    changeCurrentPin: "changeCurrentPinBoxes",
+    changeNewPin: "changeNewPinBoxes",
+    changeNewPinConfirm: "changeNewPinConfirmBoxes",
+    removeCurrentPin: "removeCurrentPinBoxes"
+  };
+  const pinFieldIds = Object.keys(pinFieldBoxMap);
+
+  function sanitizePinInput(value, maxLen) {
+    return (value || "").replace(/\D/g, "").slice(0, maxLen);
+  }
+
+  function getPinFieldLength(fieldId) {
+    if (fieldId === "setupPin" || fieldId === "setupPinConfirm") {
+      return parseInt(document.getElementById("setupPinLength").value, 10) || 4;
+    }
+    if (fieldId === "changeNewPin" || fieldId === "changeNewPinConfirm") {
+      return parseInt(document.getElementById("changePinLength").value, 10) || 4;
+    }
+    return journalPinState.pinLength || 4;
+  }
+
+  function setPinMessage(message, state = "info") {
+    const el = document.getElementById("pinBannerMessage");
+    if (!el) return;
+    if (typeof state === "boolean") {
+      state = state ? "error" : "info";
+    }
+    el.classList.remove("show", "info", "success", "error");
+    if (!message) {
+      el.textContent = "";
+      return;
+    }
+    const normalized = ["info", "success", "error"].includes(state) ? state : "info";
+    el.textContent = message;
+    el.classList.add("show", normalized);
+  }
+
+  function updateHiddenPinValue(fieldId) {
+    const hidden = document.getElementById(fieldId);
+    const boxId = pinFieldBoxMap[fieldId];
+    if (!hidden || !boxId) return;
+    const digits = Array.from(document.querySelectorAll(`#${boxId} .pin-digit`))
+      .map((node) => node.value || "")
+      .join("");
+    hidden.value = digits;
+  }
+
+  function focusFirstPinDigit(fieldId) {
+    const boxId = pinFieldBoxMap[fieldId];
+    if (!boxId) return;
+    const first = document.querySelector(`#${boxId} .pin-digit`);
+    if (first) first.focus();
+  }
+
+  function renderPinBoxes(fieldId) {
+    const boxId = pinFieldBoxMap[fieldId];
+    const box = document.getElementById(boxId);
+    const hidden = document.getElementById(fieldId);
+    if (!box || !hidden) return;
+
+    const length = getPinFieldLength(fieldId);
+    const existing = sanitizePinInput(hidden.value, length);
+    hidden.value = existing;
+    box.innerHTML = "";
+
+    for (let i = 0; i < length; i++) {
+      const digit = document.createElement("input");
+      digit.type = "text";
+      digit.className = "pin-digit";
+      digit.inputMode = "numeric";
+      digit.autocomplete = "off";
+      digit.maxLength = 1;
+      digit.value = existing[i] || "";
+      digit.setAttribute("aria-label", `PIN digit ${i + 1}`);
+
+      digit.addEventListener("input", (event) => {
+        const onlyDigit = (event.target.value || "").replace(/\D/g, "");
+        event.target.value = onlyDigit ? onlyDigit[0] : "";
+        updateHiddenPinValue(fieldId);
+        if (event.target.value && i < length - 1) {
+          const next = box.children[i + 1];
+          if (next) next.focus();
+        }
+      });
+
+      digit.addEventListener("keydown", (event) => {
+        if (event.key === "Backspace" && !digit.value && i > 0) {
+          const prev = box.children[i - 1];
+          if (prev) {
+            prev.value = "";
+            prev.focus();
+            updateHiddenPinValue(fieldId);
+          }
+          event.preventDefault();
+          return;
+        }
+        if (event.key === "ArrowLeft" && i > 0) {
+          const prev = box.children[i - 1];
+          if (prev) prev.focus();
+          event.preventDefault();
+          return;
+        }
+        if (event.key === "ArrowRight" && i < length - 1) {
+          const next = box.children[i + 1];
+          if (next) next.focus();
+          event.preventDefault();
+          return;
+        }
+        if (event.key.length === 1 && !/\d/.test(event.key)) {
+          event.preventDefault();
+        }
+      });
+
+      digit.addEventListener("paste", (event) => {
+        event.preventDefault();
+        const pasted = (event.clipboardData || window.clipboardData).getData("text") || "";
+        const digits = sanitizePinInput(pasted, length).split("");
+        for (let j = 0; j < length; j++) {
+          box.children[j].value = digits[j] || "";
+        }
+        updateHiddenPinValue(fieldId);
+        const focusIndex = Math.min(digits.length, length - 1);
+        if (box.children[focusIndex]) {
+          box.children[focusIndex].focus();
+        }
+      });
+
+      box.appendChild(digit);
+    }
+  }
+
+  function renderAllPinBoxes() {
+    pinFieldIds.forEach(renderPinBoxes);
+  }
+
+  function openPinOverlay() {
+    document.getElementById("journalPinOverlay").classList.add("active");
+  }
+
+  function closeJournalPinOverlay() {
+    document.getElementById("journalPinOverlay").classList.remove("active");
+    pinUnlockTarget = null;
+    stopPinLockCountdown();
+    clearPinInputs();
+  }
+
+  function openPinView(view) {
+    const viewMap = {
+      setup: "pinSetupView",
+      manage: "pinManageView",
+      verify: "pinVerifyView",
+      change: "pinChangeView",
+      remove: "pinRemoveView"
+    };
+    Object.values(viewMap).forEach((id) => {
+      document.getElementById(id).classList.remove("active");
+    });
+    document.getElementById(viewMap[view]).classList.add("active");
+
+    if (view === "setup") {
+      document.getElementById("pinBannerTitle").textContent = "Set Journal PIN";
+      setPinMessage("Create a 4 or 6 digit PIN for viewing journal entries.");
+      focusFirstPinDigit("setupPin");
+    } else if (view === "manage") {
+      document.getElementById("pinBannerTitle").textContent = "Manage Journal PIN";
+      setPinMessage("You can change or remove your current PIN.");
+    } else if (view === "verify") {
+      document.getElementById("pinBannerTitle").textContent = "Enter Journal PIN";
+      setPinMessage("Please enter your PIN to continue.");
+      focusFirstPinDigit("verifyPin");
+    } else if (view === "change") {
+      document.getElementById("pinBannerTitle").textContent = "Change Journal PIN";
+      setPinMessage("Confirm your current PIN, then set a new one.");
+      focusFirstPinDigit("changeCurrentPin");
+    } else if (view === "remove") {
+      document.getElementById("pinBannerTitle").textContent = "Remove Journal PIN";
+      setPinMessage("Enter your current PIN to remove it.");
+      focusFirstPinDigit("removeCurrentPin");
+    }
+  }
+
+  function clearPinInputs() {
+    pinFieldIds.forEach((id) => {
+      const input = document.getElementById(id);
+      if (input) input.value = "";
+    });
+    renderAllPinBoxes();
+  }
+
+  function syncPinInputLimits() {
+    pinFieldIds.forEach((id) => {
+      const hidden = document.getElementById(id);
+      if (hidden) {
+        hidden.value = sanitizePinInput(hidden.value, getPinFieldLength(id));
+      }
+    });
+    renderAllPinBoxes();
+  }
+
+  function formatSeconds(seconds) {
+    const total = Math.max(0, Math.floor(seconds || 0));
+    const mins = Math.floor(total / 60);
+    const secs = total % 60;
+    return `${mins}m ${secs.toString().padStart(2, "0")}s`;
+  }
+
+  function stopPinLockCountdown() {
+    if (pinLockIntervalId) {
+      clearInterval(pinLockIntervalId);
+      pinLockIntervalId = null;
+    }
+  }
+
+  function startPinLockCountdown(initialSeconds) {
+    stopPinLockCountdown();
+    let remaining = Math.max(0, Math.floor(initialSeconds || 0));
+    setPinMessage(`Too many wrong attempts. Try again in ${formatSeconds(remaining)}.`, true);
+
+    pinLockIntervalId = setInterval(async () => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        stopPinLockCountdown();
+        const status = await refreshJournalPinStatus();
+        if (status.locked) {
+          startPinLockCountdown(status.lockRemainingSeconds);
+        } else {
+          setPinMessage("PIN is unlocked now. You can try again.");
+        }
+        return;
+      }
+      setPinMessage(`Too many wrong attempts. Try again in ${formatSeconds(remaining)}.`, true);
+    }, 1000);
+  }
+
+  async function postJson(url, payload) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload || {})
+    });
+    return res.json();
+  }
+
+  function updateJournalLockIcon() {
+    const btn = document.getElementById("journalLockButton");
+    if (!btn) return;
+    if (!journalPinState.pinSet) {
+      btn.textContent = "🔐";
+      btn.title = "Set Journal PIN";
+      return;
+    }
+    btn.textContent = journalPinState.verified ? "🔓" : "🔒";
+    btn.title = journalPinState.verified ? "Journal PIN unlocked" : "Journal PIN locked";
+  }
+
+  async function refreshJournalPinStatus() {
+    try {
+      const res = await fetch("/api/journal-pin/status", { credentials: "same-origin" });
+      if (!res.ok) {
+        throw new Error("status_fetch_failed");
+      }
+
+      const data = await res.json();
+      journalPinState = Object.assign({}, journalPinState, data || {});
+      if (!journalPinState.pinLength) journalPinState.pinLength = 4;
+      updateJournalLockIcon();
+      document.getElementById("setupPinLength").value = String(journalPinState.pinLength === 6 ? 6 : 4);
+      document.getElementById("changePinLength").value = String(journalPinState.pinLength === 6 ? 6 : 4);
+      syncPinInputLimits();
+      return journalPinState;
+    } catch (err) {
+      console.error("Failed to fetch journal PIN status:", err);
+      setPinMessage("Could not load PIN status right now.", true);
+      // Privacy-first fallback: never bypass lock when status is unknown.
+      return Object.assign({}, journalPinState, { pinSet: true, verified: false, locked: false });
+    }
+  }
+
+  async function openJournalPinManager() {
+    const status = await refreshJournalPinStatus();
+    openPinOverlay();
+
+    if (!status.pinSet) {
+      openPinView("setup");
+      return;
+    }
+
+    if (status.locked) {
+      openPinView("verify");
+      startPinLockCountdown(status.lockRemainingSeconds);
+      return;
+    }
+
+    openPinView("manage");
+  }
+
+  async function requestViewEntries() {
+    pinUnlockTarget = "/view-entries";
+    const status = await refreshJournalPinStatus();
+
+    const pinNotSet = status && status.pinSet === false;
+    const pinVerified = status && status.verified === true;
+
+    if (pinNotSet || pinVerified) {
+      window.location.href = "/view-entries";
+      return;
+    }
+
+    openPinOverlay();
+    openPinView("verify");
+    if (status && status.locked) {
+      startPinLockCountdown(status.lockRemainingSeconds);
+    } else {
+      setPinMessage("Enter your PIN to view journal entries.");
+    }
+  }
+
+  async function submitPinSetup() {
+    const pinLength = parseInt(document.getElementById("setupPinLength").value, 10);
+    const pin = document.getElementById("setupPin").value;
+    const confirmPin = document.getElementById("setupPinConfirm").value;
+
+    const data = await postJson("/api/journal-pin/setup", { pinLength, pin, confirmPin });
+    if (!data.success) {
+      setPinMessage(data.message || "Could not set PIN.", true);
+      return;
+    }
+
+    await refreshJournalPinStatus();
+    clearPinInputs();
+    openPinView("manage");
+    setPinMessage("Journal PIN set successfully. Entries are now locked.", "success");
+  }
+
+  async function submitPinVerification() {
+    const pin = document.getElementById("verifyPin").value;
+    const data = await postJson("/api/journal-pin/verify", { pin });
+
+    if (!data.success) {
+      if (data.locked) {
+        startPinLockCountdown(data.lockRemainingSeconds || 0);
+      } else {
+        const tries = data.remainingAttempts != null ? ` (${data.remainingAttempts} tries left)` : "";
+        setPinMessage((data.message || "Incorrect PIN.") + tries, true);
+      }
+      return;
+    }
+
+    await refreshJournalPinStatus();
+    clearPinInputs();
+
+    if (pinUnlockTarget) {
+      const nextPage = pinUnlockTarget;
+      pinUnlockTarget = null;
+      closeJournalPinOverlay();
+      window.location.href = nextPage;
+      return;
+    }
+
+    openPinView("manage");
+    setPinMessage("PIN verified.", "success");
+  }
+
+  async function submitPinChange() {
+    const currentPin = document.getElementById("changeCurrentPin").value;
+    const pinLength = parseInt(document.getElementById("changePinLength").value, 10);
+    const newPin = document.getElementById("changeNewPin").value;
+    const confirmPin = document.getElementById("changeNewPinConfirm").value;
+
+    const data = await postJson("/api/journal-pin/change", { currentPin, pinLength, newPin, confirmPin });
+    if (!data.success) {
+      if (data.locked) {
+        openPinView("verify");
+        startPinLockCountdown(data.lockRemainingSeconds || 0);
+      } else {
+        const tries = data.remainingAttempts != null ? ` (${data.remainingAttempts} tries left)` : "";
+        setPinMessage((data.message || "Could not change PIN.") + tries, true);
+      }
+      return;
+    }
+
+    await refreshJournalPinStatus();
+    clearPinInputs();
+    openPinView("manage");
+    setPinMessage("PIN changed successfully.", "success");
+  }
+
+  async function submitPinRemove() {
+    const currentPin = document.getElementById("removeCurrentPin").value;
+    const data = await postJson("/api/journal-pin/remove", { currentPin });
+
+    if (!data.success) {
+      if (data.locked) {
+        openPinView("verify");
+        startPinLockCountdown(data.lockRemainingSeconds || 0);
+      } else {
+        const tries = data.remainingAttempts != null ? ` (${data.remainingAttempts} tries left)` : "";
+        setPinMessage((data.message || "Could not remove PIN.") + tries, true);
+      }
+      return;
+    }
+
+    await refreshJournalPinStatus();
+    clearPinInputs();
+    closeJournalPinOverlay();
+  }
+
+  function submitActivePinView() {
+    if (!document.getElementById("journalPinOverlay").classList.contains("active")) return;
+    if (document.getElementById("pinSetupView").classList.contains("active")) {
+      submitPinSetup();
+      return;
+    }
+    if (document.getElementById("pinVerifyView").classList.contains("active")) {
+      submitPinVerification();
+      return;
+    }
+    if (document.getElementById("pinChangeView").classList.contains("active")) {
+      submitPinChange();
+      return;
+    }
+    if (document.getElementById("pinRemoveView").classList.contains("active")) {
+      submitPinRemove();
+    }
+  }
+
+ document.addEventListener("DOMContentLoaded", () => {
+  // Apply saved theme
+  document.body.classList.add(`${selectedTheme}-mode`);
+  document.getElementById("hueSlider").value = savedHue;
+  applyTheme(selectedTheme);
+
+  // Restore saved journal entry
+  const saved = localStorage.getItem("zyneeEntry");
+  if (saved) {
+    journalEntry.value = saved;
+    updateCounter();
+  }
+
+  // Setup DATE and TIME fields with fallback to current date/time if outdated
+  const dateInput = document.getElementById("journalDate");
+  const timeInput = document.getElementById("journalTime");
+
+  const savedDate = localStorage.getItem("zyneeJournalDate");
+  const todayDate = formatIsoDate(new Date());
+  const nowTime = getCurrentTimeHHMM();
+
+  // Use today's date if savedDate is missing or outdated
+  if (dateInput) {
+    if (savedDate === todayDate) {
+      dateInput.value = savedDate;
+    } else {
+      dateInput.value = todayDate;
+      localStorage.setItem("zyneeJournalDate", todayDate);
+    }
+
+    dateInput.addEventListener("change", () => {
+      localStorage.setItem("zyneeJournalDate", dateInput.value);
+      updatePrettyDateLabel();
+    });
+    updatePrettyDateLabel();
+  }
+
+  // Always refresh time to current on page load
+  if (timeInput) {
+    timeInput.value = nowTime;
+    localStorage.setItem("zyneeJournalTime", nowTime);
+
+    timeInput.addEventListener("change", () => {
+      userManuallySetTime = true;
+      localStorage.setItem("zyneeJournalTime", timeInput.value);
+    });
+  }
+
+  // Set saved font size and color
+  const savedFontSize = localStorage.getItem("zyneeFontSize") || "22px";
+  journalEntry.style.fontSize = savedFontSize;
+  document.getElementById("fontSizeSelector").value = savedFontSize;
+
+  const savedTextColor = localStorage.getItem("zyneeTextColor") || "#6b5c7d";
+  journalEntry.style.color = savedTextColor;
+  document.getElementById("textColorPicker").value = savedTextColor;
+
+  syncPinInputLimits();
+  if (!window.__zyneePinEnterBound) {
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && document.getElementById("journalPinOverlay").classList.contains("active")) {
+        event.preventDefault();
+        submitActivePinView();
+      }
+    });
+    window.__zyneePinEnterBound = true;
+  }
+  refreshJournalPinStatus().then((status) => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("pinRequired") === "true") {
+      history.replaceState({}, "", "/journal.html");
+      pinUnlockTarget = "/view-entries";
+      openPinOverlay();
+      openPinView("verify");
+      if (status.locked) {
+        startPinLockCountdown(status.lockRemainingSeconds);
+      } else {
+        setPinMessage("Enter your journal PIN to continue.");
+      }
+    }
+  });
+});
+</script>
+
+<script id="sessionBackGuard">
+(function () {
+  function needsRefresh() {
+    var nav = (performance.getEntriesByType && performance.getEntriesByType("navigation")) || [];
+    return nav.length > 0 && nav[0].type === "back_forward";
+  }
+
+  window.addEventListener("pageshow", function (event) {
+    if (event.persisted || needsRefresh()) {
+      window.location.reload();
+    }
+  });
+})();
+</script>
+<div id="floatingCompanionConfig"
+     th:if="${session.email != null}"
+     th:attr="data-session-key=${session.assistantSessionKey},data-user-id=${session.userId},data-user-name=${session.name},data-country-code=${session.countryCode}"
+     style="display:none;"></div>
+<script src="/js/future-note-notifier.js"></script>
+<script src="/js/floating-companion.js"></script>
+</body>
+</html>

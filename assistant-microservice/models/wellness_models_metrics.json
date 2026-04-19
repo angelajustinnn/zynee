@@ -1,0 +1,43 @@
+{
+  "created_at_utc": "2026-04-13T19:33:51.502994+00:00",
+  "emotion_model": {
+    "path": "/Users/angelajustin/Desktop/netset/zynee/zynee/assistant-microservice/models/journal_emotion_model.joblib",
+    "metrics": {
+      "accuracy": 0.867,
+      "macro_f1": 0.8671,
+      "samples_train": 4749.0,
+      "samples_test": 1188.0
+    },
+    "split_rows": {
+      "train": 4749,
+      "test": 1188
+    }
+  },
+  "sentiment_model": {
+    "path": "/Users/angelajustin/Desktop/netset/zynee/zynee/assistant-microservice/models/journal_sentiment_model.joblib",
+    "metrics": {
+      "accuracy": 0.62,
+      "macro_f1": 0.5925,
+      "samples_train": 399.0,
+      "samples_test": 100.0
+    },
+    "split_rows": {
+      "train": 399,
+      "test": 100
+    }
+  },
+  "generated_dataset_rows": {
+    "mood_forecast_train": 7000,
+    "mood_forecast_test": 1750,
+    "mood_pattern_train": 6000,
+    "mood_pattern_test": 1800,
+    "weekly_wellness_train": 5000,
+    "weekly_wellness_test": 1500,
+    "stats_box_train": 6000,
+    "stats_box_test": 1800,
+    "cosmic_insights_train": 12000,
+    "cosmic_insights_test": 2400
+  },
+  "train_dir": "/Users/angelajustin/Desktop/netset/zynee/zynee/assistant-microservice/data/training",
+  "test_dir": "/Users/angelajustin/Desktop/netset/zynee/zynee/assistant-microservice/data/testing"
+}

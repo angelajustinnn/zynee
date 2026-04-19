@@ -1,0 +1,240 @@
+/* Global responsive/readability fixes across app pages */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+:root {
+  --topbar-height: 60px;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+table {
+  width: 100%;
+}
+
+.top-bar {
+  max-width: 100%;
+  padding-inline: clamp(0.65rem, 2vw, 1.25rem);
+}
+
+.top-bar .d-flex {
+  min-width: 0;
+}
+
+.search-bar {
+  width: min(48vw, 220px);
+  max-width: 100%;
+}
+
+.search-bar:focus {
+  width: min(70vw, 320px);
+}
+
+.suggestions {
+  width: min(92vw, 360px) !important;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.sidebar {
+  width: min(82vw, 300px);
+  max-width: 300px;
+}
+
+.main,
+main,
+.content,
+.page-content {
+  max-width: 100%;
+}
+
+.card,
+.card-box,
+.note-card,
+.read-list-card,
+.write-note-card,
+.checkin-card,
+.summary-card,
+.about-block,
+.about-card {
+  max-width: 100%;
+}
+
+textarea,
+input,
+select,
+button {
+  max-width: 100%;
+}
+
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
+.chart-wrap,
+.mood-chart,
+.chart-container {
+  width: 100%;
+  max-width: 100%;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 991.98px) {
+  body {
+    font-size: 16px;
+  }
+
+  .top-bar {
+    gap: 0.5rem;
+  }
+
+  .search-bar {
+    width: min(56vw, 220px);
+  }
+
+  .main {
+    margin-left: 0 !important;
+    padding-left: clamp(0.75rem, 2.5vw, 1.25rem) !important;
+    padding-right: clamp(0.75rem, 2.5vw, 1.25rem) !important;
+  }
+
+  .widget-item,
+  .col-6.widget-item,
+  [data-widget-group="small"],
+  [data-widget-group="large"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .square-card,
+  .card {
+    min-height: auto !important;
+  }
+
+  .stats-grid,
+  .summary-grid,
+  .dashboard-grid,
+  .main-grid,
+  .future-grid,
+  .future-notes-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  :root {
+    --topbar-height: 56px;
+  }
+
+  body {
+    line-height: 1.5;
+    overflow-y: auto !important;
+    min-height: 100dvh !important;
+  }
+
+  .top-bar {
+    min-height: var(--topbar-height);
+  }
+
+  .profile-icon,
+  .top-bar img[style*="width: 40px"] {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  .search-bar {
+    width: min(52vw, 190px);
+    font-size: 0.95rem;
+  }
+
+  .search-bar:focus {
+    width: min(78vw, 280px);
+  }
+
+  .sidebar {
+    top: var(--topbar-height) !important;
+    height: calc(100dvh - var(--topbar-height)) !important;
+    padding: 0.85rem !important;
+  }
+
+  .main,
+  main {
+    margin-top: calc(var(--topbar-height) + 0.5rem) !important;
+  }
+
+  .login-card,
+  .signup-card,
+  .card-box {
+    width: min(100%, 28rem) !important;
+    padding: 1.1rem !important;
+    border-radius: 1.1rem !important;
+  }
+
+  .login-card,
+  .signup-card {
+    margin-block: 1rem;
+  }
+
+  .modal-content-box {
+    width: min(92vw, 26rem) !important;
+    padding: 1.2rem !important;
+  }
+
+  h1,
+  h2,
+  h3 {
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .btn,
+  .cute-button {
+    min-height: 42px;
+    white-space: normal;
+  }
+
+  .emoji-grid,
+  .feeling-grid,
+  .trigger-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 430px) {
+  body {
+    font-size: 15px;
+  }
+
+  .search-bar {
+    width: min(48vw, 165px);
+  }
+
+  .top-bar {
+    padding-inline: 0.6rem;
+  }
+
+  .card,
+  .card-box {
+    border-radius: 1rem !important;
+  }
+}

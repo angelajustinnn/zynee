@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <script th:inline="javascript">
+    window.ZYNEE_IS_GUEST = /*[[${session.isGuest == true}]]*/ false;
+  </script>
+  <script src="/js/guest-access-guard.js"></script>
+  <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zyneé | Music</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/responsive.css" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5);
+      background-size: 400% 400%;
+      animation: dreamyBG 15s ease infinite;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    @keyframes dreamyBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 60px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.2rem;
+      z-index: 998;
+    }
+
+    .hamburger {
+      font-size: 1.6rem;
+      background: none;
+      border: none;
+      color: #8b5da9;
+      cursor: pointer;
+    }
+
+    .profile-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #ccc;
+      border: 2px solid white;
+      cursor: pointer;
+    }
+
+    .search-bar {
+      width: 200px;
+      transition: width 0.3s ease;
+      padding: 6px 12px;
+      border-radius: 2rem;
+      border: 1px solid #ddd;
+      background-color: rgba(255, 255, 255, 0.85);
+      outline: none;
+    }
+
+    .search-bar:focus {
+      width: 300px;
+      background-color: white;
+    }
+
+    .suggestions {
+      position: fixed;
+      top: calc(60px + 0.1cm);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      background: white;
+      padding: 0.8rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      z-index: 997;
+      display: none;
+    }
+
+    .suggestions.show {
+      display: block;
+    }
+
+    .suggestions div {
+      padding: 0.3rem 0;
+      cursor: pointer;
+    }
+
+    .suggestions div:hover {
+      color: #8b5da9;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      width: 240px;
+      height: calc(100vh - 60px);
+      background-color: #ffffff;
+      box-shadow: 2px 2px 15px rgba(190, 160, 255, 0.2);
+      padding: 1rem;
+      transform: translateX(-100%);
+      transition: transform 0.4s ease, background-color 0.3s ease;
+      z-index: 997;
+      border-top-right-radius: 1rem;
+      border-bottom-right-radius: 1rem;
+      overflow-y: auto;
+    }
+
+    .sidebar.open {
+      transform: translateX(0);
+    }
+
+    .sidebar h4 {
+      font-size: 1.4rem;
+      color: #8b5da9;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar ul li {
+      padding: 0.6rem 0;
+      color: #6b5c7d;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .sidebar ul li:hover {
+      color: #8b5da9;
+    }
+
+    .theme-options {
+      margin-top: 0.5rem;
+      margin-left: 1.2rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.95rem;
+      color: #6b5c7d;
+    }
+
+    .theme-options.active {
+      display: flex;
+    }
+
+    .theme-option {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .theme-option .dot {
+      height: 0.6rem;
+      width: 0.6rem;
+      border-radius: 50%;
+      border: 1px solid #6b5c7d;
+      background-color: transparent;
+    }
+
+    .theme-option.selected .dot {
+      background-color: #8b5da9;
+    }
+
+    #hueSliderContainer {
+      display: none;
+      margin-top: 1rem;
+      margin-left: 1.8rem;
+      height: 140px;
+      position: relative;
+    }
+
+    #hueSlider {
+      writing-mode: bt-lr;
+      appearance: slider-vertical;
+      -webkit-appearance: slider-vertical;
+      width: 20px;
+      height: 100%;
+      transform: rotate(180deg);
+    }
+
+    .main {
+      margin-top: calc(60px + 0.1cm);
+      margin-left: 0;
+      padding: 2rem;
+      transition: margin-left 0.4s ease, margin-top 0.4s ease;
+    }
+
+    .main.shifted {
+      margin-left: calc(240px + 0.1cm);
+    }
+
+    .main.pushed-down {
+      margin-top: calc(60px + 0.1cm + 3.2rem);
+    }
+    .main-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: calc(60px + 0.1cm);
+  margin-left: 0;
+  transition: margin-left 0.4s ease, margin-top 0.4s ease;
+  padding: 2rem;
+}
+
+    .card-box {
+      background-color: rgba(255, 255, 255, 0.85);
+      border-radius: 1.5rem;
+      padding: 2.1rem 1.5rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      font-size: 1.2rem;
+      color: #6b5c7d;
+      transition: background-color 0.4s ease, color 0.4s ease;
+    }
+
+    .card-box h2 {
+      font-size: 1.75rem;
+      margin-bottom: 1.2rem;
+      color: #6b5c7d;
+      font-weight: 500;
+    }
+
+    .cute-button {
+      padding: 10px 24px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 2rem;
+      background-color: #f4d9ff;
+      color: #8b5da9;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .cute-button:hover {
+      background-color: #e5c8f5;
+      transform: scale(1.05);
+    }
+    .music-player-ui {
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 1.5rem;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  font-size: 1.1rem;
+  color: #6b5c7d;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+.now-playing-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 0.8rem;
+  color: #6b5c7d;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 0.8rem;
+}
+
+.controls button {
+  background-color: #f4d9ff;
+  color: #8b5da9;
+  border: none;
+  border-radius: 50%;
+  padding: 0.6rem 0.8rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.controls button:hover {
+  background-color: #e5c8f5;
+  transform: scale(1.1);
+}
+
+#progressBar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #eee;
+  appearance: none;
+  accent-color: #8b5da9;
+}
+#profileCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  border: 2px solid white;
+  cursor: pointer;
+  background-color: #8b5da9; /* default fallback */
+}
+
+.music-card-shell {
+  max-width: 1180px;
+  width: 100%;
+}
+
+.track-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.2rem 0 0;
+}
+
+.track-column {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.track-column li::marker {
+  color: #8b5da9;
+  font-weight: 700;
+}
+
+.track-item {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(139, 93, 169, 0.2);
+  border-radius: 1rem;
+  padding: 0.55rem 0.65rem;
+  margin-left: 0.25rem;
+}
+
+.track-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.track-title {
+  font-weight: 600;
+  color: #6b5c7d;
+  line-height: 1.3;
+  font-size: 0.92rem;
+  text-align: left;
+}
+
+.track-item .cute-button {
+  width: auto;
+  min-width: 76px;
+  padding: 0.42rem 0.78rem;
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+  .music-card-shell {
+    max-width: 100%;
+  }
+
+  .music-player-ui {
+    padding: 1.25rem 1rem;
+  }
+
+  .track-grid {
+    grid-template-columns: 1fr;
+  }
+}
+  </style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <button class="hamburger" onclick="toggleSidebar()">☰</button>
+  <input type="text" id="searchInput" class="search-bar" placeholder="Search Zyneé..." onfocus="expandSearch()" onblur="shrinkSearch()" oninput="showSuggestions(this.value)" />
+  <a href="/profile.html" class="ms-3" style="text-decoration: none;">
+  <div th:if="${session.profilePhoto == null or session.profilePhoto == ''}"
+       id="profileCircle"
+       th:text="${session.initials}"
+       th:style="'background-color:' + ${session.profileColor}">
+  </div>
+
+  <img th:if="${session.profilePhoto != null and session.profilePhoto != ''}"
+       th:src="@{${session.profilePhoto}}"
+       alt="Profile"
+       style="width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              object-fit: cover;
+              cursor: pointer;" />
+</a>
+ </div>
+
+<!-- Sidebar -->
+<div id="sidebar" class="sidebar">
+  <h4>Menu</h4>
+  <ul>
+    <li onclick="window.location.href='/home.html'">🏠 Home</li>
+    <li onclick="window.location.href='/journal.html'">📖 My Journal</li>
+    <li onclick="window.location.href='/stats.html'">📊 Stats</li>
+    <li onclick="window.location.href='/mood.html'">😊 Mood Tracker</li>
+      <li onclick="window.location.href='/quick-checkin.html'">⚡ Quick Check-In</li>
+    <li onclick="window.location.href='/affirmation.html'">🌟 Affirmations</li>
+    <li onclick="window.location.href='/candle.html'">🕯️ Candle</li>
+    <li onclick="window.location.href='/music.html'">🎵 Music</li>
+    <li onclick="window.location.href='/ai-assistant.html'">🤖 Emotional Assistant</li>
+      <li onclick="window.location.href='/future-notes.html'">🫙 Future Notes</li>
+      <li onclick="window.location.href='/insights.html'">🧠 Insights</li>
+    <li onclick="toggleThemeMenu()">🎨 Theme</li>
+    <div id="themeMenu" class="theme-options">
+      <div class="theme-option" onclick="applyTheme('default')"><div class="dot"></div> Default Mode</div>
+      <div class="theme-option" onclick="applyTheme('light')"><div class="dot"></div> Light Mode</div>
+      <div class="theme-option" onclick="applyTheme('dark')"><div class="dot"></div> Dark Mode</div>
+      <div class="theme-option" onclick="applyTheme('custom')"><div class="dot"></div> Custom Mode</div>
+      <div id="hueSliderContainer">
+        <input type="range" id="hueSlider" min="0" max="360" value="270" oninput="updateHue(this.value)">
+      </div>
+    </div>
+    <li onclick="window.location.href='/about.html'">ℹ️ About</li>
+  </ul>
+</div>
+
+<!-- Suggestions -->
+<div id="suggestionsBox" class="suggestions"></div>
+
+<!-- Main Content -->
+<div id="mainContent" class="main-wrapper">
+  <div class="container d-flex justify-content-center">
+    <div class="card-box music-card-shell" id="musicCard">
+      <h2>🎶 Relaxing Music</h2>
+      <!-- Player Info + Audio -->
+<!-- Realistic Custom Audio Player UI -->
+<!-- Realistic Audio Player UI -->
+<div class="music-player-ui text-center p-4 bg-white rounded-4 shadow-sm mb-4" style="backdrop-filter: blur(10px);">
+  <div id="nowPlaying" class="music-info fw-semibold mb-2">Now Playing: Nothing</div>
+
+  <!-- Time + Progress Bar -->
+  <div class="d-flex align-items-center justify-content-between" style="font-size: 0.85rem; color: #666;">
+    <span id="currentTime">0:00</span>
+    <div id="progressContainer" class="flex-grow-1 mx-2" style="height: 6px; background: #ddd; border-radius: 3px; cursor: pointer;">
+      <div id="progressBar" class="bg-info" style="width: 0%; height: 100%; border-radius: 3px;"></div>
+    </div>
+    <span id="duration">0:00</span>
+  </div>
+
+  <!-- Control Buttons -->
+  <div class="player-controls d-flex justify-content-center align-items-center gap-3 mt-3">
+    <button id="shuffleBtn" class="btn btn-light rounded-circle shadow-sm" onclick="toggleShuffle()" title="Shuffle">
+      <i class="bi bi-shuffle"></i>
+    </button>
+    <button class="btn btn-light rounded-circle shadow-sm" onclick="prevTrack()">
+      <i class="bi bi-skip-backward-fill"></i>
+    </button>
+    <button id="playPauseBtn" class="btn btn-light rounded-circle shadow-sm" onclick="togglePlayPause()">
+      <i class="bi bi-play-fill"></i>
+    </button>
+    <button class="btn btn-light rounded-circle shadow-sm" onclick="nextTrack()">
+      <i class="bi bi-skip-forward-fill"></i>
+    </button>
+    <button id="repeatBtn" class="btn btn-light rounded-circle shadow-sm" onclick="cycleRepeatMode()" title="Repeat">
+      <i class="bi bi-arrow-repeat"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Hidden Audio Element -->
+<audio id="persistentAudioPlayer">
+  <source id="persistentAudioSource" src="" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+<!-- Track List -->
+<div class="track-grid">
+  <ol class="track-column" start="1">
+    <li class="track-item">
+      <div class="track-row">
+        <span class="track-title">🌧️ Gentle Rain</span>
+        <button class="cute-button" onclick="playPersistentTrack('/music/rain.mp3', '🌧️ Gentle Rain')">🌧️ Play</button>
+      </div>
+    </li>
+    <li class="track-item">
+      <div class="track-row">
+        <span class="track-title">🌊 Ocean Waves</span>
+        <button class="cute-button" onclick="playPersistentTrack('/music/ocean.mp3', '🌊 Ocean Waves')">🌊 Play</button>
+      </div>
+    </li>
+    <li class="track-item">
+      <div class="track-row">
+        <span class="track-title">🎐 Wind Chimes</span>
+        <button class="cute-button" onclick="playPersistentTrack('/music/chimes.mp3', '🎐 Wind Chimes')">🎐 Play</button>
+      </div>
+    </li>
+    <li class="track-item">
+      <div class="track-row">
+        <span class="track-title">🕊️ Birds Chirping</span>
+        <button class="cute-button" onclick="playPersistentTrack('/music/birds.mp3', '🕊️ Birds Chirping')">🕊️ Play</button>
+      </div>
+    </li>
+    <li class="track-item">
+      <div class="track-row">
+        <span class="track-title">🎸 Guitar Strings</span>
+        <button class="cute-button" onclick="playPersistentTrack('/music/guitar.mp3', '🎸 Guitar Strings')">🎸 Play</button>
+      </div>
+    </li>
+  </ol>
+  <ol class="track-column" start="6">
+    <li class="track-item">
+      <div class="track-row">
+        <span class="track-title">🎹 Calm Piano</span>
+        <button class="cute-button" onclick="playPersistentTrack('/music/piano.mp3', '🎹 Calm Piano')">🎹 Play</button>
+      </div>
+    </li>
+    <li class="track-item">
+      <div class="track-row">
+        <span class="track-title">🪉 Harp Harmony</span>
+        <button class="cute-button" onclick="playPersistentTrack('/music/harp.mp3', '🪉 Harp Harmony')">🪉 Play</button>
+      </div>
+    </li>
+    <li class="track-item">
+      <div class="track-row">
+        <span class="track-title">🎻 Slow Violin</span>
+        <button class="cute-button" onclick="playPersistentTrack('/music/violin.mp3', '🎻 Slow Violin')">🎻 Play</button>
+      </div>
+    </li>
+    <li class="track-item">
+      <div class="track-row">
+        <span class="track-title">🎧 Chill Lo-fi Beats</span>
+        <button class="cute-button" onclick="playPersistentTrack('/music/lofi.mp3', '🎧 Chill Lo-fi Beats')">🎧 Play</button>
+      </div>
+    </li>
+    <li class="track-item">
+      <div class="track-row">
+        <span class="track-title">🧘🏻 Ambient Space Tunes</span>
+        <button class="cute-button" onclick="playPersistentTrack('/music/space.mp3', '🧘🏻 Ambient Space Tunes')">🧘🏻 Play</button>
+      </div>
+    </li>
+  </ol>
+</div>
+</main>
+
+<!-- Scripts -->
+<script>
+  const suggestionsData = [
+  { label: "My Journal", url: "/journal.html" },
+  { label: "View Journal Entries", url: "/view-entries" },
+  { label: "Statistics", url: "/stats.html" },
+  { label: "Add Mood", url: "/mood.html" },
+  { label: "Quick Check-In", url: "/quick-checkin.html" },
+  { label: "Affirmations", url: "/affirmation.html" },
+  { label: "Virtual Candle", url: "/candle.html" },
+  { label: "Music", url: "/music.html" },
+  { label: "Emotional Assistant", url: "/ai-assistant.html" },
+  { label: "Future Notes", url: "/future-notes.html" },
+  { label: "Insights", url: "/insights.html" },
+  { label: "Profile", url: "/profile.html" },
+  { label: "About", url: "/about.html" },
+];
+
+ let selectedTheme = localStorage.getItem("zyneeTheme") || "default";
+  let savedHue = localStorage.getItem("zyneeHue") || "270";
+
+  const sidebar = document.getElementById("sidebar");
+  const main = document.getElementById("mainContent");
+  const themeMenu = document.getElementById("themeMenu");
+  const cardBox = document.getElementById("musicCard");
+
+  document.body.classList.add(`${selectedTheme}-mode`);
+  if (selectedTheme === "custom") updateHue(savedHue);
+  applyTheme(selectedTheme);
+
+  function toggleSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const wrapper = document.getElementById("mainContent");
+  const themeMenu = document.getElementById("themeMenu");
+  
+  if (!sidebar.classList.contains("open")) {
+    closeAllExcept('sidebar');
+    sidebar.classList.add("open");
+    wrapper.style.marginLeft = "240px";
+  } else {
+    sidebar.classList.remove("open");
+    wrapper.style.marginLeft = "0";
+    themeMenu.classList.remove("active");
+  }
+}
+  function toggleProfile() {
+    closeAllExcept("profile");
+    alert("Profile settings coming soon!");
+  }
+
+  function expandSearch() {
+    closeAllExcept("search");
+    document.getElementById("suggestionsBox").classList.add("show");
+    main.style.marginTop = "calc(60px + 0.1cm + 3.2rem)";
+  }
+
+  function shrinkSearch() {
+    setTimeout(() => {
+      document.getElementById("suggestionsBox").classList.remove("show");
+      main.style.marginTop = "calc(60px + 0.1cm)";
+    }, 150);
+  }
+
+  function showSuggestions(value) {
+  const filtered = suggestionsData.filter(item =>
+    item.label.toLowerCase().includes(value.toLowerCase())
+  );
+
+  suggestionsBox.innerHTML = filtered.length
+    ? filtered.map(item => `<div data-url="${item.url}" onclick="goToSuggestion('${item.url}')">${item.label}</div>`).join("")
+    : "<div>No matches found</div>";
+}
+
+function goToSuggestion(url) {
+  suggestionsBox.classList.remove("show");
+  mainContent.classList.remove("pushed-down");
+
+  if (url.startsWith("#")) {
+    document.querySelector(url)?.scrollIntoView({ behavior: "smooth" });
+  } else {
+    window.location.href = url;
+  }
+}
+
+  function toggleThemeMenu() {
+  closeAllExcept('theme');
+  document.getElementById("themeMenu").classList.toggle("active");
+}
+
+   function applyTheme(mode) {
+  selectedTheme = mode;
+  document.body.classList.remove("default-mode", "light-mode", "dark-mode");
+  document.body.classList.add(`${mode}-mode`);
+  localStorage.setItem("zyneeTheme", mode);
+
+  document.querySelectorAll(".theme-option").forEach(opt =>
+    opt.classList.remove("selected")
+  );
+  const selected = [...document.querySelectorAll(".theme-option")].find(opt =>
+    opt.textContent.toLowerCase().includes(mode)
+  );
+  if (selected) selected.classList.add("selected");
+
+  const hueContainer = document.getElementById("hueSliderContainer");
+  if (mode === "custom") {
+    hueContainer.style.display = "block";
+    updateHue(document.getElementById("hueSlider").value);
+  } else {
+    hueContainer.style.display = "none";
+
+    // Apply static theme colors
+    if (mode === "default") {
+      document.body.style.background = "linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5)";
+      sidebar.style.backgroundColor = "#ffffff";
+      cardBox.style.backgroundColor = "rgba(255, 255, 255, 0.85)";
+      cardBox.style.color = "#6b5c7d";
+    } else if (mode === "light") {
+      document.body.style.background = "#ffffff";
+      sidebar.style.backgroundColor = "#ffffff";
+      cardBox.style.backgroundColor = "#ffffff";
+      cardBox.style.color = "#333333";
+    } else if (mode === "dark") {
+      document.body.style.background = "#1c1c1e";
+      sidebar.style.backgroundColor = "#2c2c2e";
+      cardBox.style.backgroundColor = "#2c2c2e";
+      cardBox.style.color = "#ffffff";
+    }
+  }
+}
+
+   function updateHue(hueValue) {
+    if (selectedTheme !== "custom") return;
+    const h = parseInt(hueValue);
+    document.body.style.background = `hsl(${h}, 70%, 90%)`;
+    sidebar.style.backgroundColor = `hsl(${h}, 40%, 85%)`;
+    cardBox.style.backgroundColor = `hsl(${h}, 40%, 90%)`;
+    cardBox.style.color = `hsl(${h}, 20%, 25%)`;
+    localStorage.setItem("zyneeHue", hueValue);
+   }
+
+  function closeAllExcept(active) {
+  const sidebar = document.getElementById("sidebar");
+  const box = document.getElementById("suggestionsBox");
+  const wrapper = document.getElementById("mainContent");
+  const themeMenu = document.getElementById("themeMenu");
+
+  if (active !== 'sidebar' && active !== 'theme') {
+    sidebar.classList.remove("open");
+    wrapper.style.marginLeft = "0";
+  }
+
+  if (active !== 'search') {
+    box.classList.remove("show");
+    wrapper.style.marginTop = "calc(60px + 0.1cm)";
+  }
+
+  if (active !== 'theme') {
+    themeMenu.classList.remove("active");
+  }
+}
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.classList.add(`${selectedTheme}-mode`);
+
+  if (selectedTheme === 'custom') {
+    const hueSlider = document.getElementById("hueSlider");
+    if (hueSlider) hueSlider.value = savedHue;
+    updateHue(savedHue);
+  } else {
+    applyTheme(selectedTheme);
+  }}
+);
+</script>
+<script>
+  function playTrack(url) {
+    const audio = document.getElementById("audioPlayer");
+    const source = document.getElementById("audioSource");
+
+    source.src = url;
+    audio.load();
+    audio.play();
+    audio.style.display = "block";
+  }
+</script>
+<script>
+  const player = document.getElementById("persistentAudioPlayer");
+  const source = document.getElementById("persistentAudioSource");
+  const nowPlaying = document.getElementById("nowPlaying");
+  const progressBar = document.getElementById("progressBar");
+  const progressContainer = document.getElementById("progressContainer");
+  const playPauseBtn = document.getElementById("playPauseBtn");
+  const currentTimeEl = document.getElementById("currentTime");
+  const durationEl = document.getElementById("duration");
+  const shuffleBtn = document.getElementById("shuffleBtn");
+  const repeatBtn = document.getElementById("repeatBtn");
+
+  let currentTrackIndex = 0;
+  let isShuffle = false;
+  let repeatMode = 0; // 0: off, 1: repeat one, 2: repeat all
+
+  const tracks = [
+  { url: "/music/rain.mp3", title: "🌧️ Gentle Rain" },
+  { url: "/music/ocean.mp3", title: "🌊 Ocean Waves" },
+  { url: "/music/chimes.mp3", title: "🎐 Wind Chimes" },
+  { url: "/music/birds.mp3", title: "🕊️ Birds Chirping" },
+  { url: "/music/guitar.mp3", title: "🎸 Guitar Strings" },
+  { url: "/music/piano.mp3", title: "🎹 Calm Piano" },
+  { url: "/music/harp.mp3", title: "🪉 Harp Harmony" },
+  { url: "/music/violin.mp3", title: "🎻 Slow Violin" },
+  { url: "/music/lofi.mp3", title: "🎧 Chill Lo-fi Beats" },
+  { url: "/music/space.mp3", title: "🧘🏻 Ambient Space Tunes" }
+];
+
+  function loadTrack(index) {
+  const track = tracks[index];
+  currentTrackIndex = index;
+  source.src = track.url;
+  player.load();
+  nowPlaying.textContent = `Now Playing: ${track.title}`; // ✅ correct
+  localStorage.setItem("currentTitle", track.title);       // ✅ correct
+  localStorage.setItem("currentTrack", track.url);
+  localStorage.setItem("isPlaying", "true");
+}
+
+  function playPersistentTrack(url, title) {
+    const index = tracks.findIndex(t => t.url === url);
+    if (index !== -1) currentTrackIndex = index;
+    source.src = url;
+    player.load();
+    player.play();
+    updatePlayIcon(true);
+    nowPlaying.textContent = `Now Playing: ${title}`;
+    localStorage.setItem("currentTrack", url);
+    localStorage.setItem("currentTitle", title);
+    localStorage.setItem("isPlaying", "true");
+  }
+
+  function togglePlayPause() {
+    if (player.paused) {
+      player.play();
+      updatePlayIcon(true);
+    } else {
+      player.pause();
+      updatePlayIcon(false);
+    }
+  }
+
+  function updatePlayIcon(isPlaying) {
+    playPauseBtn.innerHTML = `<i class="bi ${isPlaying ? 'bi-pause-fill' : 'bi-play-fill'}"></i>`;
+  }
+
+  function prevTrack() {
+    currentTrackIndex = (currentTrackIndex - 1 + tracks.length) % tracks.length;
+    loadTrack(currentTrackIndex);
+    player.play();
+    updatePlayIcon(true);
+  }
+
+  function nextTrack() {
+    if (isShuffle) {
+      currentTrackIndex = Math.floor(Math.random() * tracks.length);
+    } else {
+      currentTrackIndex = (currentTrackIndex + 1) % tracks.length;
+    }
+    loadTrack(currentTrackIndex);
+    player.play();
+    updatePlayIcon(true); // when playing
+    updatePlayIcon(false); // when paused
+
+  }
+
+  function toggleShuffle() {
+    isShuffle = !isShuffle;
+    shuffleBtn.classList.toggle("btn-info", isShuffle);
+  }
+
+  function cycleRepeatMode() {
+    repeatMode = (repeatMode + 1) % 3;
+    let icon = "bi-arrow-repeat";
+    repeatBtn.classList.remove("btn-info");
+
+    if (repeatMode === 1) {
+      icon = "bi-repeat-1";
+      repeatBtn.classList.add("btn-info");
+    } else if (repeatMode === 2) {
+      icon = "bi-arrow-repeat";
+      repeatBtn.classList.add("btn-info");
+    }
+    repeatBtn.innerHTML = `<i class="bi ${icon}"></i>`;
+  }
+
+  player.addEventListener("timeupdate", () => {
+    const progress = (player.currentTime / player.duration) * 100 || 0;
+    progressBar.style.width = `${progress}%`;
+    currentTimeEl.textContent = formatTime(player.currentTime);
+    durationEl.textContent = formatTime(player.duration);
+  });
+
+  progressContainer.addEventListener("click", e => {
+    const width = progressContainer.clientWidth;
+    const offsetX = e.offsetX;
+    const percent = offsetX / width;
+    player.currentTime = percent * player.duration;
+  });
+
+  player.addEventListener("ended", () => {
+    if (repeatMode === 1) {
+      player.currentTime = 0;
+      player.play();
+    } else if (repeatMode === 2 || currentTrackIndex < tracks.length - 1) {
+      nextTrack();
+    } else {
+      updatePlayIcon(false);
+    }
+  });
+
+  function formatTime(time) {
+    if (isNaN(time)) return "0:00";
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60).toString().padStart(2, "0");
+    return `${minutes}:${seconds}`;
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const savedTrack = localStorage.getItem("currentTrack");
+    const savedTitle = localStorage.getItem("currentTitle") || "Nothing";
+    const isPlaying = localStorage.getItem("isPlaying") === "true";
+
+    if (savedTrack) {
+      source.src = savedTrack;
+      player.load();
+      nowPlaying.textContent = `Now Playing: ${savedTitle}`;
+      const index = tracks.findIndex(t => t.url === savedTrack);
+      if (index !== -1) currentTrackIndex = index;
+
+      if (isPlaying) {
+        player.play().then(() => updatePlayIcon(true));
+      }
+    }
+  });
+</script>
+<script id="sessionBackGuard">
+(function () {
+  function needsRefresh() {
+    var nav = (performance.getEntriesByType && performance.getEntriesByType("navigation")) || [];
+    return nav.length > 0 && nav[0].type === "back_forward";
+  }
+
+  window.addEventListener("pageshow", function (event) {
+    if (event.persisted || needsRefresh()) {
+      window.location.reload();
+    }
+  });
+})();
+</script>
+<div id="floatingCompanionConfig"
+     th:if="${session.email != null}"
+     th:attr="data-session-key=${session.assistantSessionKey},data-user-id=${session.userId},data-user-name=${session.name},data-country-code=${session.countryCode}"
+     style="display:none;"></div>
+<script src="/js/future-note-notifier.js"></script>
+<script src="/js/floating-companion.js"></script>
+</body>
+</html>

@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <script th:inline="javascript">
+    window.ZYNEE_IS_GUEST = /*[[${session.isGuest == true}]]*/ false;
+  </script>
+  <script src="/js/guest-access-guard.js"></script>
+  <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zyneé | AI Assistant</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/responsive.css" />
+<style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5);
+      background-size: 400% 400%;
+      animation: dreamyBG 15s ease infinite;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    @keyframes dreamyBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 60px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.2rem;
+      z-index: 998;
+    }
+
+    .hamburger {
+      font-size: 1.6rem;
+      background: none;
+      border: none;
+      color: #8b5da9;
+      cursor: pointer;
+    }
+
+    .profile-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #ccc;
+      border: 2px solid white;
+      cursor: pointer;
+    }
+
+    .search-bar {
+      width: 200px;
+      transition: width 0.3s ease;
+      padding: 6px 12px;
+      border-radius: 2rem;
+      border: 1px solid #ddd;
+      background-color: rgba(255, 255, 255, 0.85);
+      outline: none;
+    }
+
+    .search-bar:focus {
+      width: 300px;
+      background-color: white;
+    }
+
+    .suggestions {
+      position: fixed;
+      top: calc(60px + 0.1cm);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      background: white;
+      padding: 0.8rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      z-index: 997;
+      display: none;
+    }
+
+    .suggestions.show {
+      display: block;
+    }
+
+    .suggestions div {
+      padding: 0.3rem 0;
+      cursor: pointer;
+    }
+
+    .suggestions div:hover {
+      color: #8b5da9;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      width: 240px;
+      height: calc(100vh - 60px);
+      background-color: inherit;
+      box-shadow: 2px 2px 15px rgba(190, 160, 255, 0.2);
+      padding: 1rem;
+      transform: translateX(-100%);
+      transition: transform 0.4s ease, background-color 0.3s ease;
+      z-index: 997;
+      border-top-right-radius: 1rem;
+      border-bottom-right-radius: 1rem;
+      overflow-y: auto;
+    }
+
+    .sidebar.open {
+      transform: translateX(0);
+    }
+
+    .sidebar h4 {
+      font-size: 1.4rem;
+      color: #8b5da9;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar ul li {
+      padding: 0.6rem 0;
+      color: #6b5c7d;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .sidebar ul li:hover {
+      color: #8b5da9;
+    }
+
+    .theme-options {
+      margin-top: 0.5rem;
+      margin-left: 1.2rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.95rem;
+      color: #6b5c7d;
+    }
+
+    .theme-options.active {
+      display: flex;
+    }
+
+    .theme-option {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .theme-option .dot {
+      height: 0.6rem;
+      width: 0.6rem;
+      border-radius: 50%;
+      border: 1px solid #6b5c7d;
+      background-color: transparent;
+    }
+
+    .theme-option.selected .dot {
+      background-color: #8b5da9;
+    }
+
+    #hueSliderContainer {
+      display: none;
+      margin-top: 1rem;
+      margin-left: 1.8rem;
+      height: 140px;
+      position: relative;
+    }
+
+    #hueSlider {
+      writing-mode: bt-lr;
+      appearance: slider-vertical;
+      -webkit-appearance: slider-vertical;
+      width: 20px;
+      height: 100%;
+      transform: rotate(180deg);
+    }
+
+    .main-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-top: calc(60px + 0.1cm);
+      margin-left: 0;
+      transition: margin-left 0.4s ease, margin-top 0.4s ease;
+      padding: 2rem;
+    }
+
+    .about-block {
+      max-width: 800px;
+      width: 100%;
+      height: 86vh;
+      background-color: rgba(255, 255, 255, 0.85);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      border-radius: 1.5rem;
+      padding: 2.5rem 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    :root {
+      --card-text-color: #6b5c7d;
+    }
+
+    body.default-mode .sidebar {
+  background-color: #ffffff !important;
+}
+
+ body.dark-mode .top-bar {
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    body.dark-mode .sidebar {
+      background: #2c2c2e;
+      color: #6b5c7d;
+    }
+
+    body.dark-mode .sidebar ul li {
+      color: #6b5c7d;
+    }
+
+    body.dark-mode .theme-options,
+    body.dark-mode .theme-option {
+      color: #6b5c7d;
+    }
+
+    body.dark-mode .theme-option .dot {
+      border-color: #6b5c7d;
+    }
+
+    body.dark-mode .theme-option.selected .dot {
+      background: #8b5da9;
+    }
+
+    body.dark-mode .search-bar {
+      background-color: rgba(255, 255, 255, 0.85);
+      border-color: #ddd;
+      color: #222;
+    }
+
+    body.dark-mode .search-bar:focus {
+      background-color: #ffffff;
+      color: #222;
+    }
+
+    body.dark-mode .suggestions {
+      background: #ffffff;
+      color: #222;
+    }
+
+    body.dark-mode .suggestions div {
+      color: #222;
+    }
+
+    body.dark-mode .suggestions div:hover {
+      color: #c8a2ff;
+    }
+
+ body.dark-mode .about-block,
+    body.dark-mode .about-block h1,
+    body.dark-mode .about-block h2,
+    body.dark-mode .about-block h3,
+    body.dark-mode .about-block h4,
+    body.dark-mode .about-block p,
+    body.dark-mode .about-block blockquote {
+      color: #ffffff !important;
+    }
+    
+
+    body.custom-mode .about-block,
+    body.custom-mode .about-block h1,
+    body.custom-mode .about-block h2,
+    body.custom-mode .about-block h3,
+    body.custom-mode .about-block h4,
+    body.custom-mode .about-block p,
+    body.custom-mode .about-block blockquote {
+      color: #1a1a1a !important;
+    }
+  
+    .card-box {
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 1.5rem;
+  padding: 2.1rem 1.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  font-size: 1.2rem;
+  color: #6b5c7d;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+.card-box h2 {
+  font-size: 1.75rem;
+  margin-bottom: 1.2rem;
+  color: #6b5c7d;
+  font-weight: 500;
+}
+
+.about-block .assistant-title {
+  color: #6b5c7d !important;
+  text-align: center;
+  margin: 0 0 0.8rem;
+  font-size: 1.75rem;
+  font-weight: 500;
+}
+
+.card-box p {
+  margin-bottom: 1.5rem;
+}
+#profileCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  border: 2px solid white;
+  cursor: pointer;
+  background-color: #8b5da9; /* default fallback */
+}
+
+.typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8b5da9;
+  opacity: 0.35;
+  animation: typingBlink 1.2s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingBlink {
+  0%, 80%, 100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <button class="hamburger" onclick="toggleSidebar()">☰</button>
+  <input type="text" id="searchInput" class="search-bar" placeholder="Search Zyneé..."
+         onfocus="expandSearch()" onblur="shrinkSearch()" oninput="showSuggestions(this.value)">
+  
+  <a href="/profile.html" class="ms-3" style="text-decoration: none;">
+  <div th:if="${session.profilePhoto == null or session.profilePhoto == ''}"
+       id="profileCircle"
+       th:text="${session.initials}"
+       th:style="'background-color:' + ${session.profileColor}">
+  </div>
+
+  <img th:if="${session.profilePhoto != null and session.profilePhoto != ''}"
+       th:src="@{${session.profilePhoto}}"
+       alt="Profile"
+       style="width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              object-fit: cover;
+              cursor: pointer;" />
+</a>
+ </div>
+
+<div id="sidebar" class="sidebar">
+  <h4>Menu</h4>
+  <ul>
+     <li onclick="window.location.href='/home.html'">🏠 Home</li>
+  <li onclick="window.location.href='/journal.html'">📖 My Journal</li>
+  <li onclick="window.location.href='/stats.html'">📊 Stats</li>
+  <li onclick="window.location.href='/mood.html'">😊 Mood Tracker</li>
+      <li onclick="window.location.href='/quick-checkin.html'">⚡ Quick Check-In</li>
+  <li onclick="window.location.href='/affirmation.html'">🌟 Affirmations</li>
+  <li onclick="window.location.href='/candle.html'">🕯️ Candle</li>
+  <li onclick="window.location.href='/music.html'">🎵 Music</li>
+  <li onclick="window.location.href='/ai-assistant.html'">🤖 Emotional Assistant</li>
+  <li onclick="window.location.href='/future-notes.html'">🫙 Future Notes</li>
+      <li onclick="window.location.href='/insights.html'">🧠 Insights</li>
+    <li onclick="toggleThemeMenu()">🎨 Theme</li>
+    <div id="themeMenu" class="theme-options">
+      <div class="theme-option" onclick="applyTheme('default')"><div class="dot"></div> Default Mode</div>
+      <div class="theme-option" onclick="applyTheme('light')"><div class="dot"></div> Light Mode</div>
+      <div class="theme-option" onclick="applyTheme('dark')"><div class="dot"></div> Dark Mode</div>
+      <div class="theme-option" onclick="applyTheme('custom')"><div class="dot"></div> Custom Mode</div>
+      <div id="hueSliderContainer"><input type="range" id="hueSlider" min="0" max="360" value="270" oninput="updateHue(this.value)"></div>
+    </div>
+    <li onclick="window.location.href='/about.html'">ℹ️ About</li>
+  </ul>
+</div>
+
+<div id="suggestionsBox" class="suggestions"></div>
+
+<div id="mainContent" class="main-wrapper">
+  <div class="about-block" style="max-width: 900px; width: 100%; margin: auto; display: flex; flex-direction: column; height: 86vh;">
+
+  <h3 class="assistant-title">
+    🤖 Emotional Assistant
+  </h3>
+
+  <!-- Chat Messages Area -->
+  <div id="chatContainer" 
+       style="flex:1; overflow-y:auto; padding:1rem; border-radius:1.5rem; background:rgba(255,255,255,0.7); box-shadow: inset 0 4px 10px rgba(0,0,0,0.05);">
+
+    <!-- Example AI message -->
+    <div class="ai-message mb-3">
+      <div style="background:#f1e6ff; padding:0.8rem 1rem; border-radius:1rem; max-width:70%; color:#4b3c63;">
+        Hi, I’m here for you 💜  
+        Tell me what’s on your mind.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Input Area -->
+  <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+    <input type="text" 
+           id="userInput" 
+           placeholder="Type how you're feeling..." 
+           class="form-control"
+           style="border-radius:2rem; padding:0.6rem 1rem;" />
+
+    <button id="sendButton" onclick="sendMessage()" 
+            class="btn"
+            style="border-radius:2rem; padding:0.6rem 1.2rem; background:#8b5da9; color:white;">
+      Send
+    </button>
+  </div>
+
+</div>
+<script>
+  const suggestionsData = [
+  { label: "My Journal", url: "/journal.html" },
+  { label: "View Journal Entries", url: "/view-entries" },
+  { label: "Statistics", url: "/stats.html" },
+  { label: "Add Mood", url: "/mood.html" },
+  { label: "Quick Check-In", url: "/quick-checkin.html" },
+  { label: "Affirmations", url: "/affirmation.html" },
+  { label: "Virtual Candle", url: "/candle.html" },
+  { label: "Music", url: "/music.html" },
+  { label: "Emotional Assistant", url: "/ai-assistant.html" },
+  { label: "Future Notes", url: "/future-notes.html" },
+  { label: "Insights", url: "/insights.html" },
+  { label: "Profile", url: "/profile.html" },
+  { label: "About", url: "/about.html" },
+];
+
+  function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    const wrapper = document.getElementById("mainContent");
+    const themeMenu = document.getElementById("themeMenu");
+    if (!sidebar.classList.contains("open")) {
+      closeAllExcept('sidebar');
+      sidebar.classList.add("open");
+      wrapper.style.marginLeft = "240px";
+    } else {
+      sidebar.classList.remove("open");
+      wrapper.style.marginLeft = "0";
+      themeMenu.classList.remove("active");
+    }
+  }
+
+  function expandSearch() {
+    closeAllExcept('search');
+    const box = document.getElementById("suggestionsBox");
+    const wrapper = document.getElementById("mainContent");
+    box.classList.add("show");
+    wrapper.style.marginTop = "calc(60px + 0.1cm + 3.2rem)";
+  }
+
+  function shrinkSearch() {
+    setTimeout(() => {
+      const box = document.getElementById("suggestionsBox");
+      const wrapper = document.getElementById("mainContent");
+      box.classList.remove("show");
+      wrapper.style.marginTop = "calc(60px + 0.1cm)";
+    }, 150);
+  }
+
+  function toggleProfile() {
+    closeAllExcept('profile');
+    alert("Profile settings coming soon!");
+  }
+
+  function showSuggestions(value) {
+  const filtered = suggestionsData.filter(item =>
+    item.label.toLowerCase().includes(value.toLowerCase())
+  );
+
+  suggestionsBox.innerHTML = filtered.length
+    ? filtered.map(item => `<div data-url="${item.url}" onclick="goToSuggestion('${item.url}')">${item.label}</div>`).join("")
+    : "<div>No matches found</div>";
+}
+
+function goToSuggestion(url) {
+  suggestionsBox.classList.remove("show");
+  mainContent.classList.remove("pushed-down");
+
+  if (url.startsWith("#")) {
+    document.querySelector(url)?.scrollIntoView({ behavior: "smooth" });
+  } else {
+    window.location.href = url;
+  }
+}
+
+  function closeAllExcept(active) {
+    const sidebar = document.getElementById("sidebar");
+    const box = document.getElementById("suggestionsBox");
+    const wrapper = document.getElementById("mainContent");
+    const themeMenu = document.getElementById("themeMenu");
+
+    if (active !== 'sidebar' && active !== 'theme') {
+      sidebar.classList.remove("open");
+      wrapper.style.marginLeft = "0";
+    }
+    if (active !== 'search') {
+      box.classList.remove("show");
+      wrapper.style.marginTop = "calc(60px + 0.1cm)";
+    }
+
+    if (active !== 'theme') {
+      themeMenu.classList.remove("active");
+    }
+  }
+
+  let selectedTheme = localStorage.getItem("zyneeTheme") || 'default';
+  let savedHue = localStorage.getItem("zyneeHue") || '270';
+
+  document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add(`${selectedTheme}-mode`);
+    applyTheme(selectedTheme);
+    if (selectedTheme === 'custom') {
+      document.getElementById("hueSlider").value = savedHue;
+      updateHue(savedHue);
+    }
+  });
+
+  function toggleThemeMenu() {
+    closeAllExcept('theme');
+    document.getElementById("themeMenu").classList.toggle("active");
+  }
+
+  function applyTheme(mode) {
+    selectedTheme = mode;
+    document.body.classList.remove('default-mode', 'light-mode', 'dark-mode', 'custom-mode');
+    document.body.classList.add(`${mode}-mode`);
+    document.querySelectorAll(".theme-option").forEach(opt => opt.classList.remove("selected"));
+    const selected = Array.from(document.querySelectorAll(".theme-option")).find(opt =>
+      opt.textContent.trim().toLowerCase().includes(mode)
+    );
+    if (selected) selected.classList.add("selected");
+
+    const hueContainer = document.getElementById("hueSliderContainer");
+    if (mode === 'custom') {
+      hueContainer.style.display = "block";
+      updateHue(document.getElementById("hueSlider").value);
+    } else {
+      hueContainer.style.display = "none";
+      applyStaticTheme(mode);
+    }
+    localStorage.setItem("zyneeTheme", mode);
+  }
+
+  function applyStaticTheme(mode) {
+    document.body.classList.remove('default-mode', 'light-mode', 'dark-mode', 'custom-mode');
+    document.body.classList.add(`${mode}-mode`);
+    const sidebar = document.getElementById("sidebar");
+    const topBar = document.querySelector(".top-bar");
+    const assistantCard = document.querySelector(".about-block");
+    const chatPanel = document.getElementById("chatContainer");
+    const input = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendButton");
+
+    if (mode === 'default') {
+      document.body.style.background = 'linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5)';
+      sidebar.style.backgroundColor = '#ffffff';
+      topBar.style.background = 'rgba(255, 255, 255, 0.6)';
+      assistantCard.style.backgroundColor = 'rgba(255, 255, 255, 0.85)';
+      assistantCard.style.color = '#6b5c7d';
+      chatPanel.style.background = 'rgba(255,255,255,0.7)';
+      input.style.backgroundColor = '#ffffff';
+      input.style.borderColor = '#ddd';
+      input.style.color = '#1a1a1a';
+      sendBtn.style.background = '#8b5da9';
+      sendBtn.style.color = '#ffffff';
+      document.documentElement.style.setProperty('--card-text-color', '#6b5c7d');
+    } else if (mode === 'light') {
+      document.body.style.background = '#ffffff';
+      sidebar.style.backgroundColor = '#ffffff';
+      topBar.style.background = '#ffffff';
+      assistantCard.style.backgroundColor = '#ffffff';
+      assistantCard.style.color = '#333333';
+      chatPanel.style.background = '#f7f7f9';
+      input.style.backgroundColor = '#ffffff';
+      input.style.borderColor = '#d7d7df';
+      input.style.color = '#1a1a1a';
+      sendBtn.style.background = '#8b5da9';
+      sendBtn.style.color = '#ffffff';
+      document.documentElement.style.setProperty('--card-text-color', '#333333');
+    } else if (mode === 'dark') {
+      document.body.style.background = '#1c1c1e';
+      sidebar.style.backgroundColor = '#2c2c2e';
+      topBar.style.background = 'rgba(255, 255, 255, 0.6)';
+      assistantCard.style.backgroundColor = '#2c2c2e';
+      assistantCard.style.color = '#ffffff';
+      chatPanel.style.background = '#1f2230';
+      input.style.backgroundColor = '#1f2230';
+      input.style.borderColor = '#3b3150';
+      input.style.color = '#f4f1ff';
+      sendBtn.style.background = '#5d4c7d';
+      sendBtn.style.color = '#ffffff';
+      document.documentElement.style.setProperty('--card-text-color', '#ffffff');
+    }
+  }
+
+  function updateHue(hueValue) {
+    if (selectedTheme !== 'custom') return;
+    const h = parseInt(hueValue, 10);
+    const sidebar = document.getElementById("sidebar");
+    const topBar = document.querySelector(".top-bar");
+    const assistantCard = document.querySelector(".about-block");
+    const chatPanel = document.getElementById("chatContainer");
+    const input = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendButton");
+
+    document.body.classList.remove('default-mode', 'light-mode', 'dark-mode');
+    document.body.classList.add('custom-mode');
+    document.body.style.background = `hsl(${h}, 70%, 90%)`;
+    sidebar.style.backgroundColor = `hsl(${h}, 40%, 85%)`;
+    topBar.style.background = `hsl(${h}, 40%, 85%)`;
+    assistantCard.style.backgroundColor = `hsl(${h}, 40%, 90%)`;
+    assistantCard.style.color = `hsl(${h}, 20%, 25%)`;
+    chatPanel.style.background = `hsla(${h}, 40%, 95%, 0.95)`;
+    input.style.backgroundColor = `hsla(${h}, 35%, 97%, 0.95)`;
+    input.style.borderColor = `hsla(${h}, 35%, 55%, 0.3)`;
+    input.style.color = `hsl(${h}, 20%, 25%)`;
+    sendBtn.style.background = `hsl(${h}, 42%, 44%)`;
+    sendBtn.style.color = '#ffffff';
+    document.documentElement.style.setProperty('--card-text-color', `hsl(${h}, 20%, 25%)`);
+    localStorage.setItem("zyneeHue", hueValue);
+  }
+</script>
+<script>
+const inputField = document.getElementById("userInput");
+const sendButton = document.getElementById("sendButton");
+const chatContainer = document.getElementById("chatContainer");
+const conversationHistory = [];
+const HISTORY_LIMIT = 12;
+
+inputField.addEventListener("keypress", function (e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+function createBubble(text, isUser, isError) {
+  const wrapper = document.createElement("div");
+  wrapper.classList.add("mb-3");
+  wrapper.style.display = "flex";
+  wrapper.style.justifyContent = isUser ? "flex-end" : "flex-start";
+
+  const bubble = document.createElement("div");
+  bubble.style.padding = "0.8rem 1rem";
+  bubble.style.borderRadius = "1rem";
+  bubble.style.maxWidth = "70%";
+  bubble.style.whiteSpace = "pre-wrap";
+  bubble.style.wordBreak = "break-word";
+
+  if (isUser) {
+    bubble.style.background = "#d8eaff";
+    bubble.style.color = "#1a1a1a";
+  } else if (isError) {
+    bubble.style.background = "#fde8e8";
+    bubble.style.color = "#7f1d1d";
+  } else {
+    bubble.style.background = "#f1e6ff";
+    bubble.style.color = "#4b3c63";
+  }
+
+  setBubbleContent(bubble, text, !isUser);
+  wrapper.appendChild(bubble);
+  chatContainer.appendChild(wrapper);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+  return wrapper;
+}
+
+function createTypingBubble() {
+  const wrapper = document.createElement("div");
+  wrapper.classList.add("mb-3");
+  wrapper.style.display = "flex";
+  wrapper.style.justifyContent = "flex-start";
+
+  const bubble = document.createElement("div");
+  bubble.style.padding = "0.8rem 1rem";
+  bubble.style.borderRadius = "1rem";
+  bubble.style.maxWidth = "70%";
+  bubble.style.background = "#f1e6ff";
+  bubble.style.color = "#4b3c63";
+  bubble.classList.add("typing-indicator");
+  bubble.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+
+  wrapper.appendChild(bubble);
+  chatContainer.appendChild(wrapper);
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+  return wrapper;
+}
+
+function setBubbleContent(bubble, text, allowLinks) {
+  if (!allowLinks) {
+    bubble.textContent = text;
+    return;
+  }
+  bubble.innerHTML = linkify(escapeHtml(text)).replace(/\n/g, "<br>");
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function linkify(value) {
+  const urlRegex = /(https?:\/\/[^\s<]+)/g;
+  return value.replace(
+    urlRegex,
+    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+  );
+}
+
+function setLoading(loading) {
+  inputField.disabled = loading;
+  sendButton.disabled = loading;
+  sendButton.textContent = loading ? "Sending..." : "Send";
+}
+
+function updateAssistantBubble(wrapper, text, isError) {
+  const bubble = wrapper.querySelector("div");
+  bubble.classList.remove("typing-indicator");
+  setBubbleContent(bubble, text, true);
+  if (isError) {
+    bubble.style.background = "#fde8e8";
+    bubble.style.color = "#7f1d1d";
+  } else {
+    bubble.style.background = "#f1e6ff";
+    bubble.style.color = "#4b3c63";
+  }
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function shouldRetryAssistantError(message, status) {
+  const text = String(message || "").toLowerCase();
+  return status === 502 ||
+    status === 503 ||
+    text.includes("assistant is unavailable") ||
+    text.includes("temporarily unavailable") ||
+    text.includes("could not reach local assistant") ||
+    text.includes("start ollama");
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function sendMessage() {
+  const message = inputField.value.trim();
+  if (!message) return;
+
+  inputField.value = "";
+  const historyToSend = conversationHistory.slice(-HISTORY_LIMIT);
+  conversationHistory.push({ role: "user", content: message });
+  if (conversationHistory.length > HISTORY_LIMIT * 2) {
+    conversationHistory.splice(0, conversationHistory.length - HISTORY_LIMIT * 2);
+  }
+  createBubble(message, true, false);
+  const assistantBubble = createTypingBubble();
+  setLoading(true);
+
+  try {
+    let reply = "";
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await fetch("/api/emotional-assistant/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ message, history: historyToSend })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        reply = (data.reply || "").trim();
+        break;
+      }
+
+      const errorMessage = data.error || "I could not respond right now. Please try again.";
+      if (attempt === 0 && shouldRetryAssistantError(errorMessage, response.status)) {
+        await wait(1400);
+        continue;
+      }
+      updateAssistantBubble(assistantBubble, errorMessage, true);
+      return;
+    }
+
+    if (reply) {
+      conversationHistory.push({ role: "assistant", content: reply });
+      if (conversationHistory.length > HISTORY_LIMIT * 2) {
+        conversationHistory.splice(0, conversationHistory.length - HISTORY_LIMIT * 2);
+      }
+    }
+    updateAssistantBubble(
+      assistantBubble,
+      reply || "I could not generate a response. Please try again.",
+      false
+    );
+  } catch (error) {
+    updateAssistantBubble(
+      assistantBubble,
+      "Network issue while contacting the assistant. Please try again.",
+      true
+    );
+  } finally {
+    setLoading(false);
+    inputField.focus();
+  }
+}
+</script>
+<script src="/js/future-note-notifier.js"></script>
+<script id="sessionBackGuard">
+(function () {
+  function needsRefresh() {
+    var nav = (performance.getEntriesByType && performance.getEntriesByType("navigation")) || [];
+    return nav.length > 0 && nav[0].type === "back_forward";
+  }
+
+  window.addEventListener("pageshow", function (event) {
+    if (event.persisted || needsRefresh()) {
+      window.location.reload();
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zyneé | Sign Up</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/responsive.css" />
+<style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5);
+      background-size: 400% 400%;
+      animation: dreamyBG 15s ease infinite;
+      font-family: 'Segoe UI', sans-serif;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes dreamyBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .signup-card {
+      background-color: rgba(255, 255, 255, 0.95);
+      border-radius: 2rem;
+      padding: 2.5rem;
+      box-shadow: 0 10px 40px rgba(190, 160, 255, 0.3);
+      width: 100%;
+      max-width: 480px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .signup-title {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: #8445badf;
+      margin-bottom: 0.5rem;
+    }
+
+    .affirmation {
+      font-size: 0.95rem;
+      font-style: italic;
+      color: #a18abf;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-control {
+      border-radius: 1.2rem;
+      border: 1px solid #e3c6f3;
+    }
+
+    .btn-signup {
+      background-color: #d7a8f0;
+      color: white;
+      border-radius: 1.5rem;
+      font-weight: 500;
+    }
+
+    .btn-signup:hover {
+      background-color: #c285e6;
+    }
+
+    .link-small {
+      font-size: 0.85rem;
+      color: #9064ab;
+    }
+
+    .form-check-label {
+      font-size: 0.85rem;
+      color: #6b5c7d;
+    }
+  </style>
+</head>
+<body>
+  <div class="signup-card">
+    <div class="signup-title">Zyneé</div>
+    <div class="affirmation">“Begin your journey toward self-care.”</div>
+
+    <!-- Optional error message from servlet -->
+    <p class="text-danger" id="errorMsg">
+      <!-- filled from servlet if needed -->
+    </p>
+
+    <form method="post" action="signup">
+      <div class="mb-3">
+        <input type="text" name="name" class="form-control" placeholder="Full Name" required />
+      </div>
+
+      <div class="mb-3">
+        <input type="email" name="email" class="form-control" placeholder="Email address" required />
+      </div>
+
+      <div class="mb-3 d-flex">
+        <select name="countryCode" class="form-select me-2" style="max-width: 240px;" required>
+  <option value="+61">+61 (Australia)</option>
+  <option value="+880">+880 (Bangladesh)</option>
+  <option value="+55">+55 (Brazil)</option>
+  <option value="+1">+1 (Canada)</option>
+  <option value="+86">+86 (China)</option>
+  <option value="+57">+57 (Colombia)</option>
+  <option value="+420">+420 (Czechia)</option>
+  <option value="+45">+45 (Denmark)</option>
+  <option value="+20">+20 (Egypt)</option>
+  <option value="+251">+251 (Ethiopia)</option>
+  <option value="+358">+358 (Finland)</option>
+  <option value="+33">+33 (France)</option>
+  <option value="+49">+49 (Germany)</option>
+  <option value="+30">+30 (Greece)</option>
+  <option value="+36">+36 (Hungary)</option>
+  <option value="+91">+91 (India)</option>
+  <option value="+62">+62 (Indonesia)</option>
+  <option value="+98">+98 (Iran)</option>
+  <option value="+353">+353 (Ireland)</option>
+  <option value="+972">+972 (Israel)</option>
+  <option value="+39">+39 (Italy)</option>
+  <option value="+81">+81 (Japan)</option>
+  <option value="+254">+254 (Kenya)</option>
+  <option value="+60">+60 (Malaysia)</option>
+  <option value="+52">+52 (Mexico)</option>
+  <option value="+234">+234 (Nigeria)</option>
+  <option value="+31">+31 (Netherlands)</option>
+  <option value="+64">+64 (New Zealand)</option>
+  <option value="+47">+47 (Norway)</option>
+  <option value="+92">+92 (Pakistan)</option>
+  <option value="+51">+51 (Peru)</option>
+  <option value="+63">+63 (Philippines)</option>
+  <option value="+48">+48 (Poland)</option>
+  <option value="+351">+351 (Portugal)</option>
+  <option value="+40">+40 (Romania)</option>
+  <option value="+7">+7 (Russia)</option>
+  <option value="+966">+966 (Saudi Arabia)</option>
+  <option value="+65">+65 (Singapore)</option>
+  <option value="+27">+27 (South Africa)</option>
+  <option value="+82">+82 (South Korea)</option>
+  <option value="+34">+34 (Spain)</option>
+  <option value="+94">+94 (Sri Lanka)</option>
+  <option value="+46">+46 (Sweden)</option>
+  <option value="+41">+41 (Switzerland)</option>
+  <option value="+66">+66 (Thailand)</option>
+  <option value="+90">+90 (Turkey)</option>
+  <option value="+971">+971 (United Arab Emirates)</option>
+  <option value="+44">+44 (United Kingdom)</option>
+  <option value="+1">+1 (United States)</option>
+  <option value="+380">+380 (Ukraine)</option>
+  <option value="+84">+84 (Vietnam)</option>
+</select>
+
+        <input type="tel" name="phone" class="form-control" placeholder="Phone number" required />
+      </div>
+
+      <div class="mb-3">
+        <select name="gender" class="form-select" required>
+          <option value="">Select Gender</option>
+          <option>Female</option>
+          <option>Male</option>
+          <option>Other</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <input type="date" name="dob" class="form-control" placeholder="Date of Birth" required />
+      </div>
+
+      <div class="mb-3 position-relative">
+  <input type="password" name="password" id="password" class="form-control" placeholder="Password"
+       pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}"
+       title="Minimum 8 characters: upper, lower, number, special" required />
+
+  <div class="form-check mt-1 mb-2 text-start">
+    <input class="form-check-input" type="checkbox" id="showPassword" onclick="togglePassword('password')">
+    <label class="form-check-label" for="showPassword">Show Password</label>
+  </div>
+</div>
+
+      <div class="mb-3">
+        <input type="password" name="confirmPassword" class="form-control" placeholder="Confirm Password" required />
+      </div>
+
+      <div class="form-check text-start mb-3">
+        <input class="form-check-input" type="checkbox" id="terms" required>
+       <label class="form-check-label" for="terms">
+          I accept the <a href="/terms" class="link-small" target="_blank">Terms & Conditions</a>
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-signup w-100">Create Account</button>
+    </form>
+
+    <div class="mt-3">
+      <a href="login.html" class="link-small">Already have an account? Log in</a>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("error")) {
+      document.getElementById("errorMsg").innerText = decodeURIComponent(params.get("error"));
+    }
+  </script>
+  <script>
+  function togglePassword(id) {
+    const input = document.getElementById(id);
+    if (input.type === "password") {
+      input.type = "text";
+    } else {
+      input.type = "password";
+    }
+  }
+</script>
+</body>
+</html>

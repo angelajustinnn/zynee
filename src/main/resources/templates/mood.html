@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <script th:inline="javascript">
+    window.ZYNEE_IS_GUEST = /*[[${session.isGuest == true}]]*/ false;
+  </script>
+  <script src="/js/guest-access-guard.js"></script>
+  <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Zyneé | Mood Tracker</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/responsive.css" />
+<style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5);
+      background-size: 400% 400%;
+      animation: dreamyBG 15s ease infinite;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    @keyframes dreamyBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 60px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.2rem;
+      z-index: 998;
+    }
+
+    .hamburger {
+      font-size: 1.6rem;
+      background: none;
+      border: none;
+      color: #8b5da9;
+      cursor: pointer;
+    }
+
+    .profile-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #ccc;
+      border: 2px solid white;
+      cursor: pointer;
+    }
+
+    .search-bar {
+      width: 200px;
+      transition: width 0.3s ease;
+      padding: 6px 12px;
+      border-radius: 2rem;
+      border: 1px solid #ddd;
+      background-color: rgba(255, 255, 255, 0.85);
+      outline: none;
+    }
+
+    .search-bar:focus {
+      width: 300px;
+      background-color: white;
+    }
+
+    .suggestions {
+      position: fixed;
+      top: calc(60px + 0.1cm);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      background: white;
+      padding: 0.8rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      z-index: 997;
+      display: none;
+    }
+
+    .suggestions.show {
+      display: block;
+    }
+
+    .suggestions div {
+      padding: 0.3rem 0;
+      cursor: pointer;
+    }
+
+    .suggestions div:hover {
+      color: #8b5da9;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      width: 240px;
+      height: calc(100vh - 60px);
+      background-color: #fff;
+      box-shadow: 2px 2px 15px rgba(190, 160, 255, 0.2);
+      padding: 1rem;
+      transform: translateX(-100%);
+      transition: transform 0.4s ease, background-color 0.3s ease;
+      z-index: 997;
+      border-top-right-radius: 1rem;
+      border-bottom-right-radius: 1rem;
+      overflow-y: auto;
+    }
+
+    .sidebar.open {
+      transform: translateX(0);
+    }
+
+    .sidebar h4 {
+      font-size: 1.4rem;
+      color: #8b5da9;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar ul li {
+      padding: 0.6rem 0;
+      color: #6b5c7d;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .sidebar ul li:hover {
+      color: #8b5da9;
+    }
+
+    .theme-options {
+      margin-top: 0.5rem;
+      margin-left: 1.2rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.95rem;
+      color: #6b5c7d;
+    }
+
+    .theme-options.active {
+      display: flex;
+    }
+
+    .theme-option {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .theme-option .dot {
+      height: 0.6rem;
+      width: 0.6rem;
+      border-radius: 50%;
+      border: 1px solid #6b5c7d;
+      background-color: transparent;
+    }
+
+    .theme-option.selected .dot {
+      background-color: #8b5da9;
+    }
+
+    #hueSliderContainer {
+      display: none;
+      margin-top: 1rem;
+      margin-left: 1.8rem;
+      height: 140px;
+    }
+
+    #hueSlider {
+      writing-mode: bt-lr;
+      appearance: slider-vertical;
+      -webkit-appearance: slider-vertical;
+      width: 20px;
+      height: 100%;
+      transform: rotate(180deg);
+    }
+
+    .main {
+      margin-top: calc(60px + 0.1cm);
+      margin-left: 0;
+      padding: 2rem;
+      transition: margin-left 0.4s ease, margin-top 0.4s ease;
+    }
+
+    .main.shifted {
+      margin-left: calc(240px + 0.1cm);
+    }
+
+    .main.pushed-down {
+      margin-top: calc(60px + 0.1cm + 3.2rem);
+    }
+
+    .card-box {
+      width: min(96vw, 1000px);
+      margin: auto;
+      background-color: rgba(255, 255, 255, 0.85);
+      border-radius: 1.5rem;
+      padding: 2rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      font-size: 1rem;
+      color: #6b5c7d;
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+      color: #6b5c7d;
+      font-weight: 500;
+    }
+
+    .mood-slider {
+      width: 100%;
+      appearance: none;
+      height: 14px;
+      border-radius: 7px;
+      background: linear-gradient(to right, #e74c3c, #e67e22, #f1c40f, #2ecc71, #27ae60);
+      outline: none;
+      transition: background 0.3s ease;
+      margin-bottom: 0.8rem;
+    }
+
+    .mood-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #8b5da9;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .mood-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    #currentMood {
+      font-weight: bold;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+
+    .tags-box {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+      justify-content: center;
+    }
+
+    .tags-box span {
+      padding: 0.4rem 0.8rem;
+      background-color: #f0e4fc;
+      color: #6b5c7d; 
+      border-radius: 1.5rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+
+    .tags-box span.selected {
+      background-color: #d2b9f5;
+      color: #fff;
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      align-items: center;
+      gap: 0.8rem;
+      margin-top: 1.8rem;
+    }
+
+    .action-left {
+      justify-self: start;
+    }
+
+    .action-center {
+      justify-self: center;
+    }
+
+    .action-right {
+      justify-self: end;
+    }
+
+    .cute-button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 2rem;
+  background-color: #f4d9ff;
+  color: #8b5da9;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.cute-button:hover {
+  background-color: #e5c8f5;
+  transform: scale(1.05);
+}
+
+@media (max-width: 760px) {
+  .action-row {
+    gap: 0.45rem;
+  }
+
+  .cute-button {
+    padding: 9px 12px;
+    font-size: 0.9rem;
+  }
+}
+
+    hr {
+      margin: 1.2rem 0;
+      border: 0;
+      height: 1px;
+      background: #e1d9f0;
+    }
+
+    .mood-buttons {
+  margin-top: 15px;
+}
+
+.mood-buttons .btn + .btn {
+  margin-top: 12px;
+}
+#profileCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  border: 2px solid white;
+  cursor: pointer;
+  background-color: #8b5da9; /* default fallback */
+}
+  </style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <button class="hamburger" onclick="toggleSidebar()">☰</button>
+  <input type="text" id="searchInput" class="search-bar" placeholder="Search Zyneé..." onfocus="expandSearch()" onblur="shrinkSearch()" oninput="showSuggestions(this.value)">
+  <a href="/profile.html" class="ms-3" style="text-decoration: none;">
+  <div th:if="${session.profilePhoto == null or session.profilePhoto == ''}"
+       id="profileCircle"
+       th:text="${session.initials}"
+       th:style="'background-color:' + ${session.profileColor}">
+  </div>
+
+  <img th:if="${session.profilePhoto != null and session.profilePhoto != ''}"
+       th:src="@{${session.profilePhoto}}"
+       alt="Profile"
+       style="width: 40px;
+              height: 40px;
+              border-radius: 50%;
+              object-fit: cover;
+              cursor: pointer;" />
+</a>
+ </div>
+
+<!-- Sidebar -->
+<div id="sidebar" class="sidebar">
+  <h4>Menu</h4>
+  <ul>
+    <li onclick="window.location.href='/home.html'">🏠 Home</li>
+    <li onclick="window.location.href='/journal.html'">📖 My Journal</li>
+    <li onclick="window.location.href='/stats.html'">📊 Stats</li>
+    <li onclick="window.location.href='/mood.html'">😊 Mood Tracker</li>
+      <li onclick="window.location.href='/quick-checkin.html'">⚡ Quick Check-In</li>
+    <li onclick="window.location.href='/affirmation.html'">🌟 Affirmations</li>
+    <li onclick="window.location.href='/candle.html'">🕯️ Candle</li>
+    <li onclick="window.location.href='/music.html'">🎵 Music</li>
+    <li onclick="window.location.href='/ai-assistant.html'">🤖 Emotional Assistant</li>
+      <li onclick="window.location.href='/future-notes.html'">🫙 Future Notes</li>
+      <li onclick="window.location.href='/insights.html'">🧠 Insights</li>
+    <li onclick="toggleThemeMenu()">🎨 Theme</li>
+    <div id="themeMenu" class="theme-options">
+      <div class="theme-option" onclick="applyTheme('default')"><div class="dot"></div> Default Mode</div>
+      <div class="theme-option" onclick="applyTheme('light')"><div class="dot"></div> Light Mode</div>
+      <div class="theme-option" onclick="applyTheme('dark')"><div class="dot"></div> Dark Mode</div>
+      <div class="theme-option" onclick="applyTheme('custom')"><div class="dot"></div> Custom Mode</div>
+      <div id="hueSliderContainer"><input type="range" id="hueSlider" min="0" max="360" value="270" oninput="updateHue(this.value)"></div>
+    </div>
+    <li onclick="window.location.href='/about.html'">ℹ️ About</li>
+  </ul>
+</div>
+
+<!-- Suggestions -->
+<div id="suggestionsBox" class="suggestions"></div>
+
+<!-- Main Content -->
+<main id="mainContent" class="main">
+  <div class="card-box" id="moodCard">
+    <h2> Mood Tracker</h2>
+
+    <input type="range" min="0" max="4" value="2" class="mood-slider" id="moodSlider" step="0.01" oninput="updateMood()">
+    <div class="mood-labels">
+      <span>😢 Very Sad</span>
+      <span>🙁 Sad</span>
+      <span>😐 Neutral</span>
+      <span>🙂 Happy</span>
+      <span>😄 Very Happy</span>
+    </div>
+    <div id="currentMood">Current Mood: Neutral 😐</div>
+
+    <hr>
+
+    <div style="text-align: center; margin: 1rem auto 0.4rem; font-weight: 500; font-size: 1rem; color: #8b5da9;">
+  Express your feelings <span style="font-weight: normal;">:</span>
+</div>
+
+<div class="tags-box" id="tagsBox"></div>
+
+<div style="text-align: center; margin: 1.1rem auto 0.4rem; font-weight: 500; font-size: 1rem; color: #8b5da9;">
+  Mood triggers <span style="font-weight: normal;">:</span>
+</div>
+
+<div class="tags-box" id="triggerTagsBox"></div>
+<div id="otherTriggerWrap" style="display:none; margin-top:0.7rem;">
+  <input
+    id="otherTriggerInput"
+    type="text"
+    maxlength="70"
+    placeholder="Other trigger (up to 6 words)"
+    style="width:100%; border:1px solid #d9c8ef; border-radius:0.8rem; padding:0.55rem 0.75rem; font-size:0.95rem; color:#5e4d77;">
+</div>
+
+    <div class="action-row">
+      <button class="cute-button action-left" onclick="deselectAll()">❌ Deselect All</button>
+      <button class="cute-button action-center" onclick="window.location.href='/journal.html'">📝 Start Writing</button>
+      <button class="cute-button action-right" onclick="saveMoodToDB()">✅ Done</button>
+    </div>
+  </div>
+</main>
+
+<script>
+  const suggestionsData = [
+  { label: "My Journal", url: "/journal.html" },
+  { label: "View Journal Entries", url: "/view-entries" },
+  { label: "Statistics", url: "/stats.html" },
+  { label: "Add Mood", url: "/mood.html" },
+  { label: "Quick Check-In", url: "/quick-checkin.html" },
+  { label: "Affirmations", url: "/affirmation.html" },
+  { label: "Virtual Candle", url: "/candle.html" },
+  { label: "Music", url: "/music.html" },
+  { label: "Emotional Assistant", url: "/ai-assistant.html" },
+  { label: "Future Notes", url: "/future-notes.html" },
+  { label: "Insights", url: "/insights.html" },
+  { label: "Profile", url: "/profile.html" },
+  { label: "About", url: "/about.html" },
+];
+
+  const feelings = ["anxious", "grateful", "motivated", "calm", "lonely", "excited", "tired", "hopeful", "angry", "joyful", "overwhelmed", "content", "peaceful", "restless", "sick", "sad", "bored", "curious", "loved", "stressed", "energetic", "gloomy", "confident", "inspired", "lost", "secure", "nostalgic", "moody", "upbeat", "empty", "focused", "shy", "guilty", "proud", "jealous", "safe", "strong", "relaxed", "blessed", "weird", "worried", "thankful", "cheerful", "neutral", "hopeful", "unmotivated", "chill", "lazy", "hurt", "playful"];
+  const triggerTags = [
+    "family", "friends", "relationship", "work / studies", "health", "sleep",
+    "money / future", "self-esteem", "social media", "loneliness", "overthinking",
+    "burnout", "time pressure", "routine", "environment", "achievement", "other"
+  ];
+  const cardBox = document.getElementById("moodCard");
+  const slider = document.getElementById("moodSlider");
+  const moodText = document.getElementById("currentMood");
+
+  function updateMood() {
+    const moodMap = ["Very Sad 😢", "Sad 🙁", "Neutral 😐", "Happy 🙂", "Very Happy 😄"];
+    const raw = Number.parseFloat(slider.value);
+    const snappedIndex = Math.max(0, Math.min(4, Math.round(raw)));
+    const score = (raw + 1).toFixed(1);
+    moodText.innerText = `Current Mood: ${moodMap[snappedIndex]} (${score}/5)`;
+  }
+
+  function generateFeelings() {
+    const tagsBox = document.getElementById("tagsBox");
+    feelings.forEach(word => {
+      const span = document.createElement("span");
+      span.innerText = word;
+      span.onclick = () => span.classList.toggle("selected");
+      tagsBox.appendChild(span);
+    });
+  }
+
+  function generateTriggers() {
+    const triggerBox = document.getElementById("triggerTagsBox");
+    triggerTags.forEach(word => {
+      const span = document.createElement("span");
+      span.innerText = word;
+      if (word.toLowerCase() === "other") {
+        span.dataset.customTrigger = "true";
+      }
+      span.onclick = () => {
+        span.classList.toggle("selected");
+        updateOtherTriggerInput();
+      };
+      triggerBox.appendChild(span);
+    });
+  }
+
+  function clampWords(value, maxWords) {
+    if (typeof value !== "string") return "";
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    return trimmed.split(/\s+/).slice(0, maxWords).join(" ");
+  }
+
+  function updateOtherTriggerInput() {
+    const otherWrap = document.getElementById("otherTriggerWrap");
+    const otherSelected = document.querySelector('#triggerTagsBox span[data-custom-trigger="true"].selected');
+    otherWrap.style.display = otherSelected ? "block" : "none";
+    if (!otherSelected) {
+      document.getElementById("otherTriggerInput").value = "";
+    }
+  }
+
+  function deselectAll() {
+    document.querySelectorAll(".tags-box span").forEach(tag => tag.classList.remove("selected"));
+    updateOtherTriggerInput();
+  }
+
+  generateFeelings();
+  generateTriggers();
+  updateMood();
+
+  function closeAllExcept(type) {
+  const sidebar = document.getElementById("sidebar");
+  const wrapper = document.getElementById("mainContent");
+  const suggestionsBox = document.getElementById("suggestionsBox");
+  const themeMenu = document.getElementById("themeMenu");
+
+  if (type !== 'sidebar' && type !== 'theme') {
+    sidebar.classList.remove("open");
+    wrapper.style.marginLeft = "0";
+  }
+
+  if (type !== 'search') {
+    suggestionsBox.classList.remove("show");
+    wrapper.style.marginTop = "calc(60px + 0.1cm)";
+  }
+
+  if (type !== 'theme') {
+    themeMenu.classList.remove("active");
+  }
+}
+
+  function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    const wrapper = document.getElementById("mainContent");
+    if (!sidebar.classList.contains("open")) {
+      closeAllExcept('sidebar');
+      sidebar.classList.add("open");
+      wrapper.style.marginLeft = "240px";
+    } else {
+      sidebar.classList.remove("open");
+      wrapper.style.marginLeft = "0";
+    }
+  }
+
+  function expandSearch() {
+    closeAllExcept('search');
+    const box = document.getElementById("suggestionsBox");
+    const wrapper = document.getElementById("mainContent");
+    box.classList.add("show");
+    wrapper.style.marginTop = "calc(60px + 0.1cm + 3.2rem)";
+  }
+
+  function shrinkSearch() {
+    setTimeout(() => {
+      const box = document.getElementById("suggestionsBox");
+      const wrapper = document.getElementById("mainContent");
+      box.classList.remove("show");
+      wrapper.style.marginTop = "calc(60px + 0.1cm)";
+    }, 150);
+  }
+
+  function toggleProfile() {
+    closeAllExcept('profile');
+    alert("Profile settings coming soon!");
+  }
+
+  function toggleThemeMenu() {
+  const themeMenu = document.getElementById("themeMenu");
+
+  // Check current state: if open, close it directly
+  if (themeMenu.classList.contains("active")) {
+    themeMenu.classList.remove("active");
+  } else {
+    // Close all others except sidebar
+    closeAllExcept('theme');
+    themeMenu.classList.add("active");
+  }
+}
+
+ function showSuggestions(value) {
+  const filtered = suggestionsData.filter(item =>
+    item.label.toLowerCase().includes(value.toLowerCase())
+  );
+
+  suggestionsBox.innerHTML = filtered.length
+    ? filtered.map(item => `<div data-url="${item.url}" onclick="goToSuggestion('${item.url}')">${item.label}</div>`).join("")
+    : "<div>No matches found</div>";
+}
+
+function goToSuggestion(url) {
+  suggestionsBox.classList.remove("show");
+  mainContent.classList.remove("pushed-down");
+
+  if (url.startsWith("#")) {
+    document.querySelector(url)?.scrollIntoView({ behavior: "smooth" });
+  } else {
+    window.location.href = url;
+  }
+}
+
+  // Theme Management
+  let selectedTheme = localStorage.getItem("zyneeTheme") || 'default';
+  let savedHue = localStorage.getItem("zyneeHue") || '270';
+  if (selectedTheme === "custom") updateHue(savedHue);
+
+  function applyTheme(mode) {
+  selectedTheme = mode;
+  document.body.classList.remove("default-mode", "light-mode", "dark-mode");
+  document.body.classList.add(`${mode}-mode`);
+  localStorage.setItem("zyneeTheme", mode);
+
+  document.querySelectorAll(".theme-option").forEach(opt =>
+    opt.classList.remove("selected")
+  );
+  const selected = [...document.querySelectorAll(".theme-option")].find(opt =>
+    opt.textContent.toLowerCase().includes(mode)
+  );
+  if (selected) selected.classList.add("selected");
+
+  const hueContainer = document.getElementById("hueSliderContainer");
+  if (mode === "custom") {
+    hueContainer.style.display = "block";
+    updateHue(document.getElementById("hueSlider").value);
+  } else {
+    hueContainer.style.display = "none";
+
+    // Reset tag colors to default
+    document.querySelectorAll(".tags-box span").forEach(tag => {
+      tag.style.backgroundColor = "";
+      tag.style.color = "";
+    });
+    document.querySelectorAll(".tags-box span.selected").forEach(tag => {
+      tag.style.backgroundColor = "";
+      tag.style.color = "";
+    });
+
+    // Theme-specific styles
+    if (mode === "default") {
+      document.body.style.background = "linear-gradient(135deg, #ffe9ec, #f7ddff, #d8eaff, #fff0f5)";
+      sidebar.style.backgroundColor = "#ffffff";
+      cardBox.style.backgroundColor = "rgba(255, 255, 255, 0.85)";
+      cardBox.style.color = "#6b5c7d";
+
+      const h2 = cardBox.querySelector("h2");
+      if (h2) h2.style.color = "#6b5c7d";
+      const currentMoodText = document.getElementById("currentMood");
+      if (currentMoodText) currentMoodText.style.color = "#6b5c7d";
+    } else if (mode === "light") {
+      document.body.style.background = "#ffffff";
+      sidebar.style.backgroundColor = "#ffffff";
+      cardBox.style.backgroundColor = "#ffffff";
+      cardBox.style.color = "#333333";
+
+      const h2 = cardBox.querySelector("h2");
+      if (h2) h2.style.color = "#333333";
+      const currentMoodText = document.getElementById("currentMood");
+      if (currentMoodText) currentMoodText.style.color = "#333333";
+    } else if (mode === "dark") {
+      document.body.style.background = "#1c1c1e";
+      sidebar.style.backgroundColor = "#2c2c2e";
+      cardBox.style.backgroundColor = "#2c2c2e";
+      cardBox.style.color = "#ffffff";
+
+      const h2 = cardBox.querySelector("h2");
+      if (h2) h2.style.color = "#ffffff";
+      const currentMoodText = document.getElementById("currentMood");
+      if (currentMoodText) currentMoodText.style.color = "#ffffff";
+    }
+  }
+}
+function saveMoodToDB() {
+  const moodLevel = Math.round(Number.parseFloat(document.getElementById("moodSlider").value));
+  const selectedFeelings = Array.from(document.querySelectorAll("#tagsBox span.selected"))
+                                 .map(tag => tag.innerText);
+  const selectedTriggerNodes = Array.from(document.querySelectorAll("#triggerTagsBox span.selected"));
+  const selectedTriggers = selectedTriggerNodes.map(tag => tag.innerText);
+
+  const otherSelected = selectedTriggerNodes.some(tag => tag.dataset.customTrigger === "true");
+  if (otherSelected) {
+    const otherInput = document.getElementById("otherTriggerInput");
+    const otherText = clampWords(otherInput.value, 6);
+    if (!otherText) {
+      alert("Please type your custom trigger (up to 6 words).");
+      otherInput.focus();
+      return;
+    }
+    otherInput.value = otherText;
+    const otherIndex = selectedTriggers.findIndex(tag => tag.toLowerCase() === "other");
+    if (otherIndex !== -1) {
+      selectedTriggers[otherIndex] = `Other: ${otherText}`;
+    }
+  }
+
+  fetch('/save-mood', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      moodLevel: moodLevel,
+      feelings: selectedFeelings,
+      triggers: selectedTriggers
+    })
+  })
+  .then(response => response.text())
+  .then(data => {
+    if (data === 'success') {
+      alert('Mood saved!');
+    } else {
+      alert('Error saving mood. Please try again.');
+    }
+  });
+}
+
+  function updateHue(hueValue) {
+  if (selectedTheme !== "custom") return;
+  const h = parseInt(hueValue);
+  document.body.style.background = `hsl(${h}, 70%, 90%)`;
+  sidebar.style.backgroundColor = `hsl(${h}, 40%, 85%)`;
+  cardBox.style.backgroundColor = `hsl(${h}, 40%, 90%)`;
+  cardBox.style.color = `hsl(${h}, 20%, 25%)`;
+
+  const h2 = cardBox.querySelector("h2");
+  if (h2) h2.style.color = `hsl(${h}, 30%, 30%)`;
+
+  const currentMoodText = document.getElementById("currentMood");
+  if (currentMoodText) currentMoodText.style.color = `hsl(${h}, 30%, 30%)`;
+
+  document.querySelectorAll(".tags-box span").forEach(tag => {
+    tag.style.backgroundColor = `hsl(${h}, 60%, 95%)`;
+    tag.style.color = `hsl(${h}, 30%, 30%)`;
+  });
+
+  document.querySelectorAll(".tags-box span.selected").forEach(tag => {
+    tag.style.backgroundColor = `hsl(${h}, 50%, 65%)`;
+    tag.style.color = `#fff`;
+  });
+
+  localStorage.setItem("zyneeHue", hueValue);
+}
+
+  applyTheme(selectedTheme);
+
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+  document.body.classList.add(`${selectedTheme}-mode`);
+
+  if (selectedTheme === 'custom') {
+    const hueSlider = document.getElementById("hueSlider");
+    if (hueSlider) hueSlider.value = savedHue;
+    updateHue(savedHue);
+  } else {
+    applyTheme(selectedTheme);
+  }}
+);
+</script>
+<script id="sessionBackGuard">
+(function () {
+  function needsRefresh() {
+    var nav = (performance.getEntriesByType && performance.getEntriesByType("navigation")) || [];
+    return nav.length > 0 && nav[0].type === "back_forward";
+  }
+
+  window.addEventListener("pageshow", function (event) {
+    if (event.persisted || needsRefresh()) {
+      window.location.reload();
+    }
+  });
+})();
+</script>
+<div id="floatingCompanionConfig"
+     th:if="${session.email != null}"
+     th:attr="data-session-key=${session.assistantSessionKey},data-user-id=${session.userId},data-user-name=${session.name},data-country-code=${session.countryCode}"
+     style="display:none;"></div>
+<script src="/js/future-note-notifier.js"></script>
+<script src="/js/floating-companion.js"></script>
+</body>
+</html>

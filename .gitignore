@@ -1,0 +1,51 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.DS_Store
+
+# Local/runtime secrets and machine-specific config
+src/main/resources/application.properties
+
+# Local generated/runtime folders
+uploads/
+data/*.db
+data/*.mv.db
+data/*.trace.db
+assistant-microservice/.venv/
+assistant-microservice/__pycache__/
+assistant-microservice/.pytest_cache/
+
+# Large ML datasets/artifacts that exceed GitHub limits
+assistant-microservice/data/raw/
+assistant-microservice/data/processed/
+assistant-microservice/data/plots/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
