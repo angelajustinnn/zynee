@@ -1,6 +1,7 @@
 package com.zynee.zynee.model;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 import jakarta.persistence.Entity;
@@ -23,6 +24,8 @@ public class JournalEntry {
 
     private LocalTime time;
 
+    private LocalDateTime createdAt;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
@@ -43,6 +46,10 @@ public class JournalEntry {
     public LocalTime getTime() { return time; }
 
     public void setTime(LocalTime time) { this.time = time; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public User getUser() { return user; }
 

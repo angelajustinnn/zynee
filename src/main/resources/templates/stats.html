@@ -10,6 +10,7 @@
 <title>Zyneé | Stats</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
     <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="/js/mobile-fit-all-pages.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Segoe+UI&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
@@ -517,10 +518,13 @@ body, .sidebar, .card-box {
   let selectedTheme = localStorage.getItem("zyneeTheme") || "default";
   let selectedHue = localStorage.getItem("zyneeHue") || "270";
 
-  const main = document.getElementById("mainContent");
+  const mainContent = document.getElementById("mainContent");
+  const sidebar = document.getElementById("sidebar");
+  const suggestionsBox = document.getElementById("suggestionsBox");
   const themeMenu = document.getElementById("themeMenu");
 
     function toggleSidebar() {
+      if (!sidebar || !mainContent) return;
       closeAllExcept('sidebar');
       sidebar.classList.toggle("open");
       mainContent.classList.toggle("shifted");
@@ -532,12 +536,14 @@ body, .sidebar, .card-box {
     }
 
    function expandSearch() {
+  if (!suggestionsBox || !mainContent) return;
   closeAllExcept("search");
   suggestionsBox.classList.add("show");
   mainContent.classList.add("pushed-down");
 }
 
 function shrinkSearch() {
+  if (!suggestionsBox || !mainContent) return;
   setTimeout(() => {
     suggestionsBox.classList.remove("show");
     mainContent.classList.remove("pushed-down");
@@ -545,6 +551,8 @@ function shrinkSearch() {
 }
 
    function showSuggestions(value) {
+  const suggestionsBox = document.getElementById("suggestionsBox");
+  if (!suggestionsBox) return;
   const filtered = suggestionsData.filter(item =>
     item.label.toLowerCase().includes(value.toLowerCase())
   );
@@ -555,8 +563,10 @@ function shrinkSearch() {
 }
 
 function goToSuggestion(url) {
-  suggestionsBox.classList.remove("show");
-  mainContent.classList.remove("pushed-down");
+  const suggestionsBox = document.getElementById("suggestionsBox");
+  const mainContent = document.getElementById("mainContent") || document.querySelector(".main");
+  if (suggestionsBox) suggestionsBox.classList.remove("show");
+  if (mainContent) mainContent.classList.remove("pushed-down");
 
   if (url.startsWith("#")) {
     document.querySelector(url)?.scrollIntoView({ behavior: "smooth" });
@@ -611,130 +621,154 @@ function updateCardColors() {
   if (selectedTheme !== "custom") return;
 }
 
-    function closeAllExcept(active) {
-  if (active !== 'sidebar' && active !== 'theme') {
-    sidebar.classList.remove("open");
+	    function closeAllExcept(active) {
+	  if (!mainContent || !sidebar) return;
+	  if (active !== 'sidebar' && active !== 'theme') {
+	    sidebar.classList.remove("open");
     mainContent.classList.remove("shifted");
   }
-  if (active !== 'search') {
+  if (active !== 'search' && suggestionsBox) {
     suggestionsBox.classList.remove("show");
     mainContent.classList.remove("pushed-down");
   }
-  if (active !== 'theme') {
-    document.getElementById("themeMenu")?.classList.remove("active");
+	  if (active !== 'theme') {
+	    document.getElementById("themeMenu")?.classList.remove("active");
+	  }
+	}
+	    let moodChart, journalChart, quickCheckinChart;
+
+function showStatsEmptyState(canvasId, messageId, fallbackMessage) {
+  const canvas = document.getElementById(canvasId);
+  const message = document.getElementById(messageId);
+  if (canvas) canvas.style.display = "none";
+  if (message) {
+    if (fallbackMessage) message.textContent = fallbackMessage;
+    message.style.display = "block";
   }
 }
-    let moodChart, journalChart, quickCheckinChart;
 
-fetch('/api/stats-data')
-  .then(res => res.json())
-  .then(data => {
-    
-    if (data.error) return console.error("Unauthorized or error fetching stats.");
+function showAllWeeklyNoDataStates() {
+  showStatsEmptyState("moodPieChart", "noMoodData", "No mood logs this week.");
+  showStatsEmptyState("entriesBarChart", "noJournalData", "No journal entries this week.");
+  showStatsEmptyState("quickCheckinLineChart", "noQuickCheckinData", "No quick check-in entries this week.");
+}
 
-    const moodCounts = Array.isArray(data.moodCounts) ? data.moodCounts.map(c => Number(c) || 0) : [0, 0, 0, 0, 0];
-    const journalCounts = Array.isArray(data.journalCounts) ? data.journalCounts.map(c => Number(c) || 0) : [0, 0, 0, 0, 0, 0, 0];
+fetch('/api/stats-data?t=' + Date.now(), { cache: 'no-store' })
+  .then((res) => res.json())
+  .then((data) => {
+    if (data.error) {
+      showAllWeeklyNoDataStates();
+      console.error("Unauthorized or error fetching stats.");
+      return;
+    }
+
+    const moodCounts = Array.isArray(data.moodCounts) ? data.moodCounts.map((c) => Number(c) || 0) : [0, 0, 0, 0, 0];
+    const journalCounts = Array.isArray(data.journalCounts) ? data.journalCounts.map((c) => Number(c) || 0) : [0, 0, 0, 0, 0, 0, 0];
     const quickCheckinCountsRaw = Array.isArray(data.quickCheckinCounts) ? data.quickCheckinCounts : [];
     const quickCheckinCounts = Array.from({ length: 7 }, (_, idx) => Number(quickCheckinCountsRaw[idx]) || 0);
 
-    // ========== MOOD PIE CHART ==========
-    const moodCtx = document.getElementById('moodPieChart').getContext('2d');
+    const moodCanvas = document.getElementById("moodPieChart");
+    const journalCanvas = document.getElementById("entriesBarChart");
+    const quickCheckinCanvas = document.getElementById("quickCheckinLineChart");
 
-    // Destroy old chart if it exists
+    if (!moodCanvas || !journalCanvas || !quickCheckinCanvas) {
+      showAllWeeklyNoDataStates();
+      return;
+    }
+
+    const moodCtx = moodCanvas.getContext("2d");
+    const journalCtx = journalCanvas.getContext("2d");
+    const quickCheckinCtx = quickCheckinCanvas.getContext("2d");
+    if (!moodCtx || !journalCtx || !quickCheckinCtx) {
+      showAllWeeklyNoDataStates();
+      return;
+    }
+
+    // ========== MOOD PIE CHART ==========
     if (moodChart) moodChart.destroy();
 
-    const isAllMoodZero = moodCounts.every(c => c === 0);
+    const isAllMoodZero = moodCounts.every((c) => c === 0);
     if (isAllMoodZero) {
-      document.getElementById("moodPieChart").style.display = "none";
-      document.getElementById("noMoodData").style.display = "block";
+      showStatsEmptyState("moodPieChart", "noMoodData");
     } else {
-      document.getElementById("moodPieChart").style.display = "block";
+      moodCanvas.style.display = "block";
       document.getElementById("noMoodData").style.display = "none";
 
       moodChart = new Chart(moodCtx, {
-        type: 'pie',
+        type: "pie",
         data: {
-          labels: ['Very sad', 'Sad', 'Neutral', 'Happy', 'Very happy'],
+          labels: ["Very sad", "Sad", "Neutral", "Happy", "Very happy"],
           datasets: [{
             data: moodCounts,
-            backgroundColor: ['#f7b2d9', '#aecbfa', '#ffd6a5', '#caffbf', '#d0bdf4']
+            backgroundColor: ["#f7b2d9", "#aecbfa", "#ffd6a5", "#caffbf", "#d0bdf4"]
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom' } }
+          plugins: { legend: { position: "bottom" } }
         }
       });
     }
-    
 
     // ========== JOURNAL BAR CHART ==========
-    const journalCtx = document.getElementById('entriesBarChart').getContext('2d');
-
     if (journalChart) journalChart.destroy();
 
-    const isAllJournalZero = journalCounts.every(c => c === 0);
+    const isAllJournalZero = journalCounts.every((c) => c === 0);
     if (isAllJournalZero) {
-      document.getElementById("entriesBarChart").style.display = "none";
-      document.getElementById("noJournalData").style.display = "block";
+      showStatsEmptyState("entriesBarChart", "noJournalData");
     } else {
-      document.getElementById("entriesBarChart").style.display = "block";
+      journalCanvas.style.display = "block";
       document.getElementById("noJournalData").style.display = "none";
 
       journalChart = new Chart(journalCtx, {
-        type: 'bar',
+        type: "bar",
         data: {
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
           datasets: [{
-            label: 'Journal Entries',
+            label: "Journal Entries",
             data: journalCounts,
-            backgroundColor: '#a29bfe'
+            backgroundColor: "#a29bfe"
           }]
         },
         options: {
-  responsive: true,
-  maintainAspectRatio: false,
-  scales: {
-    y: {
-      beginAtZero: true,
-      ticks: {
-        stepSize: 1,
-        precision: 0,
-        callback: function (value) {
-          return Number.isInteger(value) ? value : null;
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1,
+                precision: 0,
+                callback: function (value) {
+                  return Number.isInteger(value) ? value : null;
+                }
+              }
+            }
+          }
         }
-      }
-    }
-  }
-}
       });
     }
 
     // ========== QUICK CHECK-IN LINE CHART ==========
-    const quickCheckinCanvas = document.getElementById('quickCheckinLineChart');
-    const quickCheckinCtx = quickCheckinCanvas.getContext('2d');
-    const quickCheckinSection = document.getElementById("quickCheckinSection");
-
     if (quickCheckinChart) quickCheckinChart.destroy();
 
-    const isAllQuickCheckinZero = quickCheckinCounts.every(c => c === 0);
+    const isAllQuickCheckinZero = quickCheckinCounts.every((c) => c === 0);
     if (isAllQuickCheckinZero) {
-      quickCheckinCanvas.style.display = "none";
-      document.getElementById("noQuickCheckinData").style.display = "block";
+      showStatsEmptyState("quickCheckinLineChart", "noQuickCheckinData");
     } else {
       quickCheckinCanvas.style.display = "block";
       document.getElementById("noQuickCheckinData").style.display = "none";
 
       quickCheckinChart = new Chart(quickCheckinCtx, {
-        type: 'line',
+        type: "line",
         data: {
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
           datasets: [{
-            label: 'Quick Check-In Entries',
+            label: "Quick Check-In Entries",
             data: quickCheckinCounts,
-            borderColor: '#8b5da9',
-            backgroundColor: 'rgba(139, 93, 169, 0.18)',
+            borderColor: "#8b5da9",
+            backgroundColor: "rgba(139, 93, 169, 0.18)",
             borderWidth: 3,
             fill: true,
             tension: 0.35,
@@ -760,6 +794,10 @@ fetch('/api/stats-data')
         }
       });
     }
+  })
+  .catch((error) => {
+    console.error("Stats fetch failed:", error);
+    showAllWeeklyNoDataStates();
   });
 
 function setStatsAnalysisNote(message) {

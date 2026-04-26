@@ -3,6 +3,7 @@ package com.zynee.zynee.controller;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -122,7 +123,7 @@ public class QuickCheckinApiController {
 
             QuickCheckinEntry entry = new QuickCheckinEntry();
             entry.setUser(userOpt.get());
-            entry.setCreatedAt(LocalDateTime.now());
+            entry.setCreatedAt(nowUtc());
             entry.setQuestionnaireVersion(sanitize(
                     payload.get("version"),
                     DEFAULT_VERSION,
@@ -175,7 +176,7 @@ public class QuickCheckinApiController {
             response.put("success", true);
             response.put("saved", true);
             response.put("id", entry.getId());
-            response.put("savedAt", entry.getCreatedAt().toString());
+            response.put("savedAt", toIsoUtc(entry.getCreatedAt()));
             response.put("moodLabel", entry.getMoodLabel());
             response.put("confidence", entry.getResponseConfidence());
             response.put("averageScore", entry.getAverageScore());
@@ -210,7 +211,7 @@ public class QuickCheckinApiController {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("saved", true);
         response.put("id", entry.getId());
-        response.put("savedAt", entry.getCreatedAt().toString());
+        response.put("savedAt", toIsoUtc(entry.getCreatedAt()));
         response.put("version", entry.getQuestionnaireVersion());
         response.put("moodLabel", entry.getMoodLabel());
         response.put("confidence", entry.getResponseConfidence());
@@ -283,6 +284,15 @@ public class QuickCheckinApiController {
             return Optional.empty();
         }
         return userRepository.findByEmail(email);
+    }
+
+    private LocalDateTime nowUtc() {
+        return LocalDateTime.now(ZoneOffset.UTC);
+    }
+
+    private String toIsoUtc(LocalDateTime value) {
+        if (value == null) return "";
+        return value.atOffset(ZoneOffset.UTC).toInstant().toString();
     }
 
     private Map<String, Object> normalizeAnswerMap(Object raw) {

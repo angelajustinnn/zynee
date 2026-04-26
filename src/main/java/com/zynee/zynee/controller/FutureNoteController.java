@@ -1,6 +1,8 @@
 package com.zynee.zynee.controller;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
@@ -66,12 +68,12 @@ public class FutureNoteController {
 
         final LocalDateTime unlockAt;
         try {
-            unlockAt = LocalDateTime.parse(unlockAtRaw);
+            unlockAt = parseIncomingDateTime(unlockAtRaw);
         } catch (DateTimeParseException ex) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid unlock date/time format."));
         }
 
-        if (!unlockAt.isAfter(LocalDateTime.now())) {
+        if (!unlockAt.isAfter(nowUtc())) {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "Unlock date/time must be in the future so your note stays sealed."));
         }
@@ -79,7 +81,7 @@ public class FutureNoteController {
         FutureNote note = new FutureNote();
         note.setUser(userOpt.get());
         note.setContent(content);
-        note.setCreatedAt(LocalDateTime.now());
+        note.setCreatedAt(nowUtc());
         note.setUnlockAt(unlockAt);
         futureNoteRepository.save(note);
 
@@ -95,7 +97,7 @@ public class FutureNoteController {
         }
 
         User user = userOpt.get();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = nowUtc();
         List<FutureNote> notes = futureNoteRepository.findByUserOrderByUnlockAtAscCreatedAtAsc(user);
 
         List<Map<String, Object>> allNotes = notes.stream()
@@ -129,7 +131,7 @@ public class FutureNoteController {
         }
 
         User user = userOpt.get();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = nowUtc();
         List<FutureNote> unreadUnlocked = futureNoteRepository
                 .findByUserAndUnlockAtLessThanEqualAndOpenedAtIsNull(user, now);
         for (FutureNote note : unreadUnlocked) {
@@ -198,7 +200,7 @@ public class FutureNoteController {
         }
 
         User user = userOpt.get();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = nowUtc();
         long unreadUnlockedCount = futureNoteRepository.countByUserAndUnlockAtLessThanEqualAndOpenedAtIsNull(user, now);
         return ResponseEntity.ok(Map.of(
                 "unreadUnlockedCount", unreadUnlockedCount,
@@ -220,7 +222,9 @@ public class FutureNoteController {
         view.put("id", note.getId());
         view.put("locked", locked);
         view.put("writtenAt", formatDateTime(note.getCreatedAt()));
+        view.put("writtenAtIso", toIsoUtc(note.getCreatedAt()));
         view.put("unlockAt", formatDateTime(note.getUnlockAt()));
+        view.put("unlockAtIso", toIsoUtc(note.getUnlockAt()));
         view.put("status", locked ? "sealed" : "unlocked");
         view.put("content", locked ? "" : note.getContent());
         return view;
@@ -230,13 +234,34 @@ public class FutureNoteController {
         Map<String, Object> view = new LinkedHashMap<>();
         view.put("id", note.getId());
         view.put("writtenAt", formatDateTime(note.getCreatedAt()));
+        view.put("writtenAtIso", toIsoUtc(note.getCreatedAt()));
         view.put("unlockAt", formatDateTime(note.getUnlockAt()));
+        view.put("unlockAtIso", toIsoUtc(note.getUnlockAt()));
         view.put("content", note.getContent());
         return view;
     }
 
     private String formatDateTime(LocalDateTime value) {
         return value == null ? "" : value.format(DISPLAY_FORMATTER);
+    }
+
+    private LocalDateTime nowUtc() {
+        return LocalDateTime.now(ZoneOffset.UTC);
+    }
+
+    private String toIsoUtc(LocalDateTime value) {
+        if (value == null) return "";
+        return value.atOffset(ZoneOffset.UTC).toInstant().toString();
+    }
+
+    private LocalDateTime parseIncomingDateTime(String rawValue) {
+        try {
+            return LocalDateTime.parse(rawValue);
+        } catch (DateTimeParseException ignored) {
+            return OffsetDateTime.parse(rawValue)
+                    .withOffsetSameInstant(ZoneOffset.UTC)
+                    .toLocalDateTime();
+        }
     }
 
     private String safeTrim(String value) {

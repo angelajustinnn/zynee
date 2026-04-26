@@ -10,6 +10,7 @@
 <title>Zyneé | Quick Check-In</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="/js/mobile-fit-all-pages.js"></script>
 <style>
     *, *::before, *::after { box-sizing: border-box; }
 
@@ -1771,9 +1772,9 @@
       }
 
       const timestamp = payload.savedAt || payload.timestamp;
-      const date = new Date(timestamp);
-      if (!Number.isNaN(date.getTime())) {
-        lastSavedValue.textContent = date.toLocaleString();
+      const formattedTimestamp = formatSavedTimestamp(timestamp);
+      if (formattedTimestamp) {
+        lastSavedValue.textContent = formattedTimestamp;
       } else {
         lastSavedValue.textContent = "Not saved yet";
       }
@@ -1805,6 +1806,23 @@
       if (!visibleCount) {
         setListMessage("No answers captured.");
       }
+    }
+
+    function formatSavedTimestamp(timestamp) {
+      if (typeof timestamp !== "string" || !timestamp.trim()) return "";
+
+      const parsedDirect = new Date(timestamp);
+      if (!Number.isNaN(parsedDirect.getTime())) {
+        return parsedDirect.toLocaleString();
+      }
+
+      const normalized = timestamp.trim().replace(" ", "T");
+      const fallback = new Date(normalized);
+      if (!Number.isNaN(fallback.getTime())) {
+        return fallback.toLocaleString();
+      }
+
+      return "";
     }
 
     async function loadSavedSnapshot() {

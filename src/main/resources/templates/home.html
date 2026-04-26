@@ -10,6 +10,7 @@
 <title>Zyneé | Home</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="/js/mobile-fit-all-pages.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
@@ -378,6 +379,10 @@ body {
       margin-top: 0.75rem;
     }
 
+    .welcome-actions.hidden {
+      display: none !important;
+    }
+
     .welcome-action-btn {
       border: 0;
       border-radius: 999px;
@@ -411,10 +416,58 @@ body {
       cursor: pointer;
       background: none;
       border: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      z-index: 2005;
+      pointer-events: auto;
+      touch-action: manipulation;
     }
 
     .close-btn:hover {
       color: #988eab;
+    }
+
+    @media (max-width: 767.98px) {
+      .welcome-box {
+        width: min(92vw, 390px);
+        max-width: 390px;
+        padding: 1.2rem 1rem 1rem;
+        border-radius: 20px;
+        top: 47%;
+      }
+
+      .welcome-title {
+        font-size: 1.45rem;
+        margin-bottom: 0.55rem;
+      }
+
+      .welcome-msg {
+        font-size: 0.94rem;
+        margin-bottom: 0.7rem;
+        line-height: 1.45;
+      }
+
+      .welcome-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .welcome-action-btn {
+        width: 100%;
+      }
+
+      .close-btn {
+        width: 34px;
+        height: 34px;
+        top: 6px;
+        right: 8px;
+        font-size: 1.4rem;
+      }
     }
 
     .guest-upgrade-overlay {
@@ -531,6 +584,8 @@ body {
 #miniCalendar .day-name {
   font-weight: bold;
   color: #8b5da9;
+  white-space: nowrap;
+  font-size: 0.88rem;
 }
 
 #miniCalendar .day {
@@ -804,6 +859,54 @@ body.dark-mode .cosmic-insight-box #cosmicVibeContext {
   color: var(--card-text-color);
 }
 
+#tttFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 330px;
+  margin: 0.15rem auto 0;
+}
+
+#tttFooter #replayTTT {
+  margin-right: 0 !important;
+}
+
+#tttFooter .score-board {
+  flex: 1 1 150px;
+  white-space: normal;
+  display: inline-block;
+  min-width: 0;
+}
+
+.ttt-card {
+  overflow: hidden;
+}
+
+.ttt-card .cute-button {
+  max-width: 100%;
+}
+
+#tttGame {
+  width: 100%;
+}
+
+.affirmation-widget-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.affirmation-widget-card p {
+  text-align: center !important;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 28ch;
+}
+
 #board div {
   font-size: 2.2rem;
   font-weight: bold;
@@ -815,6 +918,75 @@ body.dark-mode .cosmic-insight-box #cosmicVibeContext {
 
 :root {
   --ttt-symbol-color: #1a1a1a; /* default: black */
+}
+
+@media (max-width: 991.98px) {
+  .ttt-card {
+    padding-bottom: 1.2rem !important;
+  }
+
+  .ttt-card #tttGame {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  .ttt-card h3 {
+    font-size: 1.85rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .ttt-card p {
+    margin-bottom: 0.45rem;
+    font-size: 0.95rem;
+  }
+
+  .ttt-card #board {
+    width: min(186px, 100%) !important;
+  }
+
+  .ttt-card #status {
+    font-size: 0.97rem;
+    line-height: 1.35;
+    margin-top: 0.7rem !important;
+    margin-bottom: 0.35rem !important;
+  }
+
+  .ttt-card #tttFooter {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 220px;
+    gap: 0.35rem;
+    padding-inline: 0;
+  }
+
+  .ttt-card #tttFooter #replayTTT {
+    width: auto;
+    max-width: none;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.88rem;
+    border-radius: 0.8rem;
+    margin: 0 !important;
+  }
+
+  .ttt-card #tttFooter .score-board {
+    flex: 1 1 auto;
+    text-align: right;
+    line-height: 1.25;
+    font-size: 0.86rem;
+    white-space: nowrap;
+  }
+
+  .affirmation-widget-card p {
+    text-align: center !important;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 100%;
+  }
 }
 
   
@@ -990,18 +1162,95 @@ body.widgets-editing .widget-item:active {
   <div id="suggestionsBox" class="suggestions"></div>
 
  <!-- ✅ Welcome Banner -->
-<div id="welcomeBox" class="welcome-box">
-  <span class="close-btn">×</span>
+<div id="welcomeBox" class="welcome-box" th:attr="data-onboarding-required=${onboardingRequired}">
+  <button type="button" class="close-btn" aria-label="Close welcome banner" onclick="window.__zyneeDismissWelcome && window.__zyneeDismissWelcome('close-inline', false)">×</button>
   <div class="welcome-title">Welcome to Zyneé!</div>
   <div class="welcome-msg">Your Emotions, Beautifully Understood</div>
-  <div class="welcome-actions" th:if="${onboardingRequired}">
-    <button type="button" id="startTourBtn" class="welcome-action-btn start-tour">Start Tour</button>
-    <button type="button" id="skipTourBtn" class="welcome-action-btn skip-tour">Skip</button>
+  <div id="welcomeActions" class="welcome-actions">
+    <button type="button" id="startTourBtn" class="welcome-action-btn start-tour" onclick="window.__zyneeDismissWelcome && window.__zyneeDismissWelcome('start-inline', true)">Start Tour</button>
+    <button type="button" id="skipTourBtn" class="welcome-action-btn skip-tour" onclick="window.__zyneeDismissWelcome && window.__zyneeDismissWelcome('skip-inline', false)">Skip</button>
   </div>
 </div>
 
   <!-- Blocker Overlay -->
   <div id="blocker" class="blocker"></div>
+
+<script>
+(function () {
+  function dismissWelcome(startTour) {
+    var welcomeBox = document.getElementById("welcomeBox");
+    var blocker = document.getElementById("blocker");
+    var topbar = document.getElementById("topbar");
+    var mainContent = document.getElementById("mainContent");
+    var onboardingRequired = welcomeBox && String(welcomeBox.getAttribute("data-onboarding-required")).toLowerCase() === "true";
+
+    if (welcomeBox) welcomeBox.classList.add("hidden");
+    if (blocker) blocker.classList.add("hidden");
+    if (topbar) topbar.classList.add("active");
+    if (mainContent) mainContent.style.display = "block";
+
+    if (startTour === true && window.ZyneeOnboardingTour && typeof window.ZyneeOnboardingTour.start === "function") {
+      var shouldForceTourStart = onboardingRequired || window.ZYNEE_IS_GUEST === true;
+      window.ZyneeOnboardingTour.start({ forceStart: shouldForceTourStart });
+      return;
+    }
+
+    if (startTour !== true && onboardingRequired && window.ZyneeOnboardingTour && typeof window.ZyneeOnboardingTour.promptForAnalysisConsent === "function") {
+      window.ZyneeOnboardingTour.promptForAnalysisConsent("welcome-skip");
+    }
+  }
+
+  window.__zyneeDismissWelcome = function (_source, startTour) {
+    dismissWelcome(startTour === true);
+  };
+
+  function wireWelcomeFailsafe() {
+    var closeBtn = document.querySelector("#welcomeBox .close-btn");
+    var skipBtn = document.getElementById("skipTourBtn");
+    var startBtn = document.getElementById("startTourBtn");
+    var blocker = document.getElementById("blocker");
+
+    if (closeBtn && !closeBtn.dataset.failsafeBound) {
+      closeBtn.dataset.failsafeBound = "1";
+      closeBtn.addEventListener("touchend", function (event) {
+        event.preventDefault();
+        dismissWelcome(false);
+      }, { passive: false });
+    }
+
+    if (skipBtn && !skipBtn.dataset.failsafeBound) {
+      skipBtn.dataset.failsafeBound = "1";
+      skipBtn.addEventListener("touchend", function (event) {
+        event.preventDefault();
+        dismissWelcome(false);
+      }, { passive: false });
+    }
+
+    if (startBtn && !startBtn.dataset.failsafeBound) {
+      startBtn.dataset.failsafeBound = "1";
+      startBtn.addEventListener("touchend", function (event) {
+        event.preventDefault();
+        dismissWelcome(true);
+      }, { passive: false });
+    }
+
+    if (blocker && !blocker.dataset.failsafeBound) {
+      blocker.dataset.failsafeBound = "1";
+      blocker.addEventListener("click", function (event) {
+        if (event.target === blocker) {
+          dismissWelcome(false);
+        }
+      });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", wireWelcomeFailsafe);
+  } else {
+    wireWelcomeFailsafe();
+  }
+})();
+</script>
 
   <div id="guestUpgradeOverlay" class="guest-upgrade-overlay">
     <div class="guest-upgrade-card">
@@ -1034,29 +1283,51 @@ body.widgets-editing .widget-item:active {
   { label: "About", url: "/about.html" },
 ];
 
-   function toggleSidebar() {
-  const sidebar = document.getElementById("sidebar");
-  const mainContent = document.getElementById("mainContent");
+function isMobileLayout() {
+  return window.matchMedia("(max-width: 991.98px)").matches;
+}
 
-  if (!sidebar.classList.contains("open")) {
-    closeAllExcept('sidebar');
-    sidebar.classList.add("open");
+function applyMainLayoutForSidebar(isOpen) {
+  const mainContent = document.getElementById("mainContent");
+  if (!mainContent) return;
+
+  if (isMobileLayout()) {
+    // Mobile should always stay full-width; sidebar overlays instead of pushing content.
+    mainContent.style.marginLeft = "0";
+    mainContent.style.width = "100%";
+    return;
+  }
+
+  if (isOpen) {
     mainContent.style.marginLeft = "240px";
     mainContent.style.width = "calc(100% - 240px)";
   } else {
-    sidebar.classList.remove("open");
     mainContent.style.marginLeft = "0";
     mainContent.style.width = "100%";
   }
 }
 
-  function expandSearch() {
+function toggleSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const willOpen = !sidebar.classList.contains("open");
+
+  if (willOpen) {
+    closeAllExcept('sidebar');
+    sidebar.classList.add("open");
+  } else {
+    sidebar.classList.remove("open");
+  }
+
+  applyMainLayoutForSidebar(sidebar.classList.contains("open"));
+}
+
+function expandSearch() {
   closeAllExcept('search');
   const suggestionsBox = document.getElementById("suggestionsBox");
   const mainContent = document.getElementById("mainContent");
 
   suggestionsBox.classList.add("show");
-  mainContent.style.marginTop = "130px"; // same as music.html
+  mainContent.style.marginTop = isMobileLayout() ? "calc(56px + 0.5rem)" : "130px";
 }
 
 function shrinkSearch() {
@@ -1065,7 +1336,7 @@ function shrinkSearch() {
     const mainContent = document.getElementById("mainContent");
 
     suggestionsBox.classList.remove("show");
-    mainContent.style.marginTop = "60px"; // consistent default
+    mainContent.style.marginTop = isMobileLayout() ? "calc(56px + 0.5rem)" : "60px";
   }, 150);
 }
 
@@ -1075,6 +1346,8 @@ function shrinkSearch() {
   }
 
   function showSuggestions(value) {
+  const suggestionsBox = document.getElementById("suggestionsBox");
+  if (!suggestionsBox) return;
   const filtered = suggestionsData.filter(item =>
     item.label.toLowerCase().includes(value.toLowerCase())
   );
@@ -1085,8 +1358,10 @@ function shrinkSearch() {
 }
 
 function goToSuggestion(url) {
-  suggestionsBox.classList.remove("show");
-  mainContent.classList.remove("pushed-down");
+  const suggestionsBox = document.getElementById("suggestionsBox");
+  const mainContent = document.getElementById("mainContent") || document.querySelector(".main");
+  if (suggestionsBox) suggestionsBox.classList.remove("show");
+  if (mainContent) mainContent.classList.remove("pushed-down");
 
   if (url.startsWith("#")) {
     document.querySelector(url)?.scrollIntoView({ behavior: "smooth" });
@@ -1103,8 +1378,7 @@ function goToSuggestion(url) {
 
     if (active !== 'sidebar') {
       sidebar.classList.remove("open");
-      mainContent.style.marginLeft = "0";
-    mainContent.style.width = "100%";
+      applyMainLayoutForSidebar(false);
     }
     if (active !== 'search') {
       suggestionsBox.classList.remove("show");
@@ -1145,23 +1419,32 @@ document.addEventListener("DOMContentLoaded", () => {
   // ✅ Handle sidebar margin adjustment
   const mainContent = document.getElementById("mainContent");
   const sidebar = document.getElementById("sidebar");
-
-  if (sidebar.classList.contains("open")) {
-    mainContent.style.marginLeft = "240px";
-    mainContent.style.width = "calc(100% - 240px)";
-  } else {
-    mainContent.style.marginLeft = "0";
-    mainContent.style.width = "100%";
+  if (!mainContent || !sidebar) {
+    return;
   }
 
+  applyMainLayoutForSidebar(sidebar.classList.contains("open"));
+
   // Set default top margin
-  mainContent.style.marginTop = "60px";
+  mainContent.style.marginTop = isMobileLayout() ? "calc(56px + 0.5rem)" : "60px";
+
+  window.addEventListener("resize", () => {
+    applyMainLayoutForSidebar(sidebar.classList.contains("open"));
+    if (!document.getElementById("suggestionsBox").classList.contains("show")) {
+      mainContent.style.marginTop = isMobileLayout() ? "calc(56px + 0.5rem)" : "60px";
+    }
+  });
 
   // ✅ Show welcome banner by default
   const welcomeBox = document.getElementById("welcomeBox");
   const blocker = document.getElementById("blocker");
   const topbar = document.getElementById("topbar");
+  if (!welcomeBox || !blocker || !topbar || !mainContent) {
+    return;
+  }
+
   const closeBtn = welcomeBox.querySelector(".close-btn");
+  const welcomeActions = document.getElementById("welcomeActions");
   const startTourBtn = document.getElementById("startTourBtn");
   const skipTourBtn = document.getElementById("skipTourBtn");
   const guestUpgradeOverlay = document.getElementById("guestUpgradeOverlay");
@@ -1169,7 +1452,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const guestUpgradeClose = document.getElementById("guestUpgradeClose");
   const isFirstLoginOnboardingUser = window.ZYNEE_FIRST_LOGIN_ONBOARDING_REQUIRED === true;
   const isGuestUser = window.ZYNEE_IS_GUEST === true;
-  const shouldShowWelcomeBanner = !sessionStorage.getItem("welcomeShown");
+  const shouldForceOnboardingBanner = isFirstLoginOnboardingUser || isGuestUser;
+  if (welcomeActions) {
+    welcomeActions.classList.toggle("hidden", !shouldForceOnboardingBanner);
+  }
+  const pageParams = new URLSearchParams(window.location.search || "");
+  if (pageParams.get("noWelcome") === "1") {
+    sessionStorage.setItem("welcomeShown", "true");
+  } else if (shouldForceOnboardingBanner) {
+    sessionStorage.removeItem("welcomeShown");
+  }
+  const shouldShowWelcomeBanner = pageParams.get("noWelcome") === "1"
+    ? false
+    : (shouldForceOnboardingBanner || !sessionStorage.getItem("welcomeShown"));
 
   const dismissWelcomeBanner = () => {
     welcomeBox.classList.add("hidden");
@@ -1247,12 +1542,22 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Close logic
-  closeBtn.addEventListener("click", () => {
-    dismissWelcomeBanner();
-    if (isFirstLoginOnboardingUser) {
-      promptConsentAfterOnboardingSkip();
-    }
-  });
+  if (closeBtn) {
+    let welcomeCloseHandled = false;
+    const handleClose = (event) => {
+      if (welcomeCloseHandled || welcomeBox.classList.contains("hidden")) return;
+      welcomeCloseHandled = true;
+      event.preventDefault();
+      event.stopPropagation();
+      dismissWelcomeBanner();
+      if (isFirstLoginOnboardingUser) {
+        promptConsentAfterOnboardingSkip();
+      }
+    };
+
+    closeBtn.addEventListener("click", handleClose);
+    closeBtn.addEventListener("touchend", handleClose, { passive: false });
+  }
   if (skipTourBtn) {
     skipTourBtn.addEventListener("click", () => {
       dismissWelcomeBanner();
@@ -1262,8 +1567,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (startTourBtn) {
     startTourBtn.addEventListener("click", () => {
       dismissWelcomeBanner();
-      if (isFirstLoginOnboardingUser && window.ZyneeOnboardingTour && typeof window.ZyneeOnboardingTour.start === "function") {
-        window.ZyneeOnboardingTour.start();
+      if ((isFirstLoginOnboardingUser || isGuestUser) && window.ZyneeOnboardingTour && typeof window.ZyneeOnboardingTour.start === "function") {
+        window.ZyneeOnboardingTour.start({ forceStart: true });
       }
     });
   }
@@ -1701,9 +2006,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     <!-- Affirmations -->
     <div class="col-6 d-flex justify-content-center widget-item" data-widget-id="affirmations" data-widget-group="small">
-      <div class="card square-card shadow-sm rounded-4 p-4" onclick="window.location.href='/affirmation.html'" style="cursor: pointer; width: 100%;">
+      <div class="card square-card affirmation-widget-card shadow-sm rounded-4 p-4" onclick="window.location.href='/affirmation.html'" style="cursor: pointer; width: 100%;">
         <h3>🌟 Affirmations</h3>
-        <p>Get a motivational affirmation to uplift your mood.</p>
+        <p class="text-center">Get a motivational affirmation to uplift your mood.</p>
         <div class="text-center mt-3"></div>
         <div class="text-center mt-3">
           <button class="cute-button" onclick="window.location.href='/affirmation.html'">💖 Generate</button>
@@ -1760,14 +2065,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	      <!-- Tic Tac Toe Card -->
 	      <div class="col-6 d-flex justify-content-center widget-item" data-widget-id="ttt" data-widget-group="large">
-	        <div class="card square-card shadow-sm rounded-4 p-4 text-center w-100">
+	        <div class="card square-card ttt-card shadow-sm rounded-4 p-4 text-center w-100">
           <h3>⭕❌ Tic Tac Toe</h3>
           <p>Try to beat the bot</p>
          <button class="cute-button" id="startTTT">🎮 Start Game</button>
           <div id="tttGame" style="display:none">
-            <div class="d-flex flex-wrap justify-content-center mt-3" id="board" style="width:240px"></div>
+            <div class="d-flex flex-wrap justify-content-center mt-3 mx-auto" id="board" style="width:min(240px, 100%)"></div>
             <p id="status" class="fw-bold mt-3">Your turn (X)</p>
-            <div class="d-flex justify-content-between px-2 align-items-center mt-2">
+            <div id="tttFooter" class="d-flex justify-content-between px-2 align-items-center mt-2">
               <button class="cute-button d-none me-2" id="replayTTT" onclick="restartTTT()">🔁 Replay</button>
               <span class="score-board fw-medium">You: <span id="scoreX">0</span> | Bot: <span id="scoreO">0</span></span>
             </div>
@@ -1909,17 +2214,25 @@ document.addEventListener("DOMContentLoaded", function () {
     let currentPlayer = "X";
     let gameOver = false, scoreX = 0, scoreO = 0;
 
+    function getTttCellSize() {
+      const isMobile = window.matchMedia("(max-width: 991.98px)").matches;
+      return isMobile ? 52 : 70;
+    }
+
     function renderTttBoard(cellSizePx) {
       const board = document.getElementById("board");
+      if (!board) return;
+      board.style.width = `${cellSizePx * 3}px`;
       board.innerHTML = "";
       for (let i = 0; i < 9; i++) {
         const cell = document.createElement("div");
         cell.className = "border d-flex align-items-center justify-content-center";
         cell.style.width = `${cellSizePx}px`;
         cell.style.height = `${cellSizePx}px`;
-        cell.style.fontSize = "2rem";
+        cell.style.fontSize = cellSizePx >= 70 ? "2rem" : "1.7rem";
         cell.dataset.index = i;
         cell.style.cursor = "pointer";
+        cell.innerText = tttBoard[i] || "";
         cell.addEventListener("click", handleMove);
         board.appendChild(cell);
       }
@@ -1936,7 +2249,7 @@ document.addEventListener("DOMContentLoaded", function () {
       currentPlayer = "X";
       document.getElementById("status").innerText = "Your turn (X)";
       document.getElementById("replayTTT").classList.add("d-none");
-      renderTttBoard(70);
+      renderTttBoard(getTttCellSize());
     }
 
     function restartTTT() {
@@ -1947,8 +2260,14 @@ document.addEventListener("DOMContentLoaded", function () {
       currentPlayer = "X";
       document.getElementById("status").innerText = "Your turn (X)";
       document.getElementById("replayTTT").classList.add("d-none");
-      renderTttBoard(70);
+      renderTttBoard(getTttCellSize());
     }
+
+    window.addEventListener("resize", function () {
+      const tttGame = document.getElementById("tttGame");
+      if (!tttGame || tttGame.style.display === "none") return;
+      renderTttBoard(getTttCellSize());
+    });
 
     function handleMove(e) {
       const i = Number(e.target.dataset.index);

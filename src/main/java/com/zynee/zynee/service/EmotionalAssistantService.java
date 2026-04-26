@@ -44,7 +44,6 @@ public class EmotionalAssistantService {
 
     public String getAssistantReply(
             String userMessage,
-            String userName,
             String countryCode,
             List<Map<String, String>> history) throws IOException {
         if (assistantUrl.isBlank()) {
@@ -53,7 +52,6 @@ public class EmotionalAssistantService {
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("message", userMessage);
-        payload.put("userName", userName == null ? "" : userName.trim());
         payload.put("countryCode", countryCode == null ? "" : countryCode.trim());
         payload.put("history", history == null ? List.of() : history);
 

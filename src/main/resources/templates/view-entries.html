@@ -10,6 +10,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/responsive.css" />
+  <script src="/js/mobile-fit-all-pages.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     :root {
@@ -111,6 +112,37 @@ body.default-mode {
       padding: 6px 12px;
       border-radius: 2rem;
       border: 1px solid #ccc;
+    }
+
+    @media (max-width: 991px) {
+      .top-bar {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 0.45rem;
+        height: 56px;
+        padding: 0 0.6rem;
+      }
+
+      .top-bar .sort-select {
+        margin-right: 0;
+        min-width: 84px;
+        padding: 0.32rem 0.55rem;
+        font-size: 0.9rem;
+      }
+
+      .search-bar {
+        position: static;
+        left: auto;
+        transform: none;
+        width: 100%;
+      }
+
+      .top-close-btn {
+        position: static !important;
+        top: auto !important;
+        right: auto !important;
+        font-size: 1.1rem !important;
+      }
     }
 
     .btn-close {
@@ -276,7 +308,7 @@ mark {
       <option value="oldest">Oldest</option>
     </select>
     <input type="text" id="searchBox" class="search-bar" placeholder="Search entries..." oninput="filterEntries()">
-    <button class="btn" style="position:absolute; top:0.9rem; right:1rem; font-size:1.3rem;" onclick="window.location.href='/journal.html'">
+    <button class="btn top-close-btn" style="position:absolute; top:0.9rem; right:1rem; font-size:1.3rem;" onclick="window.location.href='/journal.html'">
       <i class="bi bi-x-lg"></i>
     </button>
   </div>
@@ -314,8 +346,13 @@ function fetchEntries() {
     .catch(error => console.error('Error fetching entries:', error));
 }
 
-    function formatDate(dateStr, timeStr) {
-      const date = new Date(`${dateStr}T${timeStr}`);
+    function formatDate(entry) {
+      const isoCandidate = entry && typeof entry.createdAtIso === "string" ? entry.createdAtIso.trim() : "";
+      const parsedIso = isoCandidate ? new Date(isoCandidate) : null;
+      const date = parsedIso && !Number.isNaN(parsedIso.getTime())
+        ? parsedIso
+        : parseEntryDateTime(entry?.date, entry?.time);
+      if (!date) return `${entry?.date || "-"} (${entry?.time || "-"})`;
       const options = { day: '2-digit', month: 'short', year: 'numeric' };
       const formatted = date.toLocaleDateString('en-GB', options);
       let hours = date.getHours();
@@ -323,6 +360,20 @@ function fetchEntries() {
       const ampm = hours >= 12 ? 'pm' : 'am';
       hours = hours % 12 || 12;
       return `${formatted} (${hours}:${minutes} ${ampm})`;
+    }
+
+    function parseEntryDateTime(dateStr, timeStr) {
+      if (!dateStr || !timeStr) return null;
+      const [year, month, day] = String(dateStr).split("-").map(Number);
+      const parts = String(timeStr).split(":").map(Number);
+      const hour = Number.isFinite(parts[0]) ? parts[0] : 0;
+      const minute = Number.isFinite(parts[1]) ? parts[1] : 0;
+      const second = Number.isFinite(parts[2]) ? parts[2] : 0;
+
+      if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+        return null;
+      }
+      return new Date(year, month - 1, day, hour, minute, second, 0);
     }
 
     function renderEntries(list, highlightTerm = "") {
@@ -346,9 +397,10 @@ function fetchEntries() {
       highlightedTime = entry.time.replace(regex, "<mark>$1</mark>");
     }
 
+    const renderedDate = formatDate(entry);
     card.innerHTML = `
   <i class="bi bi-trash delete-icon" onclick="event.stopPropagation(); confirmDelete(${entry.id})"></i>
-    <div class="entry-date-time">${formatDate(entry.date, entry.time)}</div>
+    <div class="entry-date-time">${renderedDate}</div>
 
   <div class="entry-preview">${highlightedContent
   .replace(/\n/g, "<br>")
@@ -368,7 +420,7 @@ function fetchEntries() {
   </div> <!-- entry-card ends -->
 
 <div class="confirmation-banner" data-id="${entry.id}" style="display: none;">
-  <div style="font-weight: 600; margin-bottom: 1 rem;">${formatDate(entry.date, entry.time)}</div>
+  <div style="font-weight: 600; margin-bottom: 1 rem;">${renderedDate}</div>
   <div>Are you sure you want to delete this entry?</div>
 
   <button class="btn btn-sm btn-outline-danger ms-2" onclick="event.stopPropagation(); deleteEntry(${entry.id})">Yes</button>
@@ -489,7 +541,8 @@ if (savedHue) {
 
   const filtered = entries.filter(e => {
     const content = e.content.toLowerCase();
-    const date = new Date(`${e.date}T${e.time}`);
+    const date = parseEntryDateTime(e.date, e.time);
+    if (!date || Number.isNaN(date.getTime())) return false;
     
     // Human-readable formats
     const readableDate = date.toLocaleDateString('en-GB', {
@@ -512,9 +565,11 @@ if (savedHue) {
     function sortEntries() {
       const sort = document.getElementById("sortSelect").value;
       entries.sort((a, b) => {
-        const dateA = new Date(`${a.date}T${a.time}`);
-        const dateB = new Date(`${b.date}T${b.time}`);
-        return sort === "newest" ? dateB - dateA : dateA - dateB;
+        const dateA = parseEntryDateTime(a.date, a.time);
+        const dateB = parseEntryDateTime(b.date, b.time);
+        const tsA = dateA ? dateA.getTime() : 0;
+        const tsB = dateB ? dateB.getTime() : 0;
+        return sort === "newest" ? tsB - tsA : tsA - tsB;
       });
       renderEntries(entries);
     }

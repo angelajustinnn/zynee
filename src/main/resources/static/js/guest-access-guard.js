@@ -408,10 +408,12 @@
 
   function installJournalGuards() {
     addClickInterceptor("button[onclick*='saveJournal']", SAVE_BANNER_MESSAGE);
+    addClickInterceptor("button[onclick*='requestViewEntries']", SAVE_BANNER_MESSAGE);
     addClickInterceptor("#journalLockButton", JOURNAL_PIN_BANNER_MESSAGE);
     addClickInterceptor("#journalPinOverlay .pin-btn", JOURNAL_PIN_BANNER_MESSAGE);
 
     overrideGlobalFunction("saveJournal", SAVE_BANNER_MESSAGE);
+    overrideGlobalFunction("requestViewEntries", SAVE_BANNER_MESSAGE, true);
     overrideGlobalFunction("openJournalPinManager", JOURNAL_PIN_BANNER_MESSAGE, true);
     overrideGlobalFunction("submitPinSetup", JOURNAL_PIN_BANNER_MESSAGE, true);
     overrideGlobalFunction("submitPinVerification", JOURNAL_PIN_BANNER_MESSAGE, true);
@@ -470,6 +472,28 @@
     if (isFutureNotesPage(pathname)) installFutureNotesGuards();
     if (isAffirmationPage(pathname)) installAffirmationGuards();
     if (isAssistantPage(pathname)) installAssistantGuards();
+  }
+
+  function installViewEntriesNavigationGuard() {
+    addClickInterceptor(
+      "a[href='/view-entries'], a[href='/view-entries/'], [data-url='/view-entries'], [onclick*='/view-entries']",
+      SAVE_BANNER_MESSAGE
+    );
+
+    if (typeof window.goToSuggestion === "function" && window.goToSuggestion.__zyneeGuestWrapped !== true) {
+      var originalGoToSuggestion = window.goToSuggestion;
+      var wrappedGoToSuggestion = function (url) {
+        var target = String(url || "").toLowerCase();
+        if (target.indexOf("/view-entries") !== -1) {
+          blockGuestAction(SAVE_BANNER_MESSAGE);
+          return false;
+        }
+        return originalGoToSuggestion.apply(this, arguments);
+      };
+      wrappedGoToSuggestion.__zyneeGuestWrapped = true;
+      wrappedGoToSuggestion.__zyneeGuestOriginal = originalGoToSuggestion;
+      window.goToSuggestion = wrappedGoToSuggestion;
+    }
   }
 
   function patchFetchForGuest() {
@@ -560,6 +584,7 @@
     clearGuestPersistence();
     applyGuestSessionTheme();
     installPageSpecificGuards();
+    installViewEntriesNavigationGuard();
   }
 
   if (document.readyState === "loading") {

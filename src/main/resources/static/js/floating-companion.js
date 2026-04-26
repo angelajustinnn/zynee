@@ -14,6 +14,7 @@
 
   const STORAGE_PREFIX = "zynee_floating_companion::";
   const NAME_STORAGE_PREFIX = "zynee_floating_companion_name::";
+  const MOBILE_QUERY = "(max-width: 991.98px)";
   const storageKey = STORAGE_PREFIX + sessionKey;
 
   cleanupOldStates(STORAGE_PREFIX, storageKey);
@@ -37,7 +38,7 @@
 
   if (persistentName) {
     state.name = persistentName;
-  } else if (!state.name || state.name === "Zynee Companion") {
+  } else if (!state.name || isLegacyAutoName(state.name, initialUserName)) {
     state.name = defaultName;
   }
 
@@ -120,6 +121,7 @@
   renderMessages();
   applyPositions();
   togglePanel(Boolean(state.open), false);
+  syncBubbleState();
   saveState();
 
   bubble.addEventListener("pointerdown", onBubblePointerDown);
@@ -159,6 +161,7 @@
   });
 
   function onBubblePointerDown(event) {
+    event.preventDefault();
     dragState = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -167,11 +170,13 @@
       bubbleY: state.y,
       moved: false
     };
+    bubble.classList.add("dragging");
     bubble.setPointerCapture(event.pointerId);
   }
 
   function onBubblePointerMove(event) {
     if (!dragState || event.pointerId !== dragState.pointerId) return;
+    event.preventDefault();
     const dx = event.clientX - dragState.startX;
     const dy = event.clientY - dragState.startY;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
@@ -190,6 +195,7 @@
     }
     const moved = dragState.moved;
     dragState = null;
+    bubble.classList.remove("dragging");
     if (!moved) {
       togglePanel(!state.open);
     } else {
@@ -200,6 +206,7 @@
   function onBubblePointerCancel(event) {
     if (!dragState || event.pointerId !== dragState.pointerId) return;
     dragState = null;
+    bubble.classList.remove("dragging");
   }
 
   function updateName(raw) {
@@ -214,8 +221,9 @@
 
   function togglePanel(open, persist = true) {
     state.open = open;
+    syncBubbleState();
     panel.style.display = open ? "flex" : "none";
-    if (open) {
+    if (open && !window.matchMedia(MOBILE_QUERY).matches) {
       input.focus();
     }
     applyPositions();
@@ -223,10 +231,14 @@
   }
 
   function clampBubble() {
-    const maxX = Math.max(12, window.innerWidth - 68);
-    const maxY = Math.max(72, window.innerHeight - 68);
-    state.x = clamp(state.x, 12, maxX);
-    state.y = clamp(state.y, 72, maxY);
+    const compact = window.matchMedia("(max-width: 991.98px)").matches;
+    const bubbleSize = compact ? 48 : 56;
+    const edge = compact ? 10 : 12;
+    const minY = compact ? 64 : 72;
+    const maxX = Math.max(edge, window.innerWidth - (bubbleSize + edge));
+    const maxY = Math.max(minY, window.innerHeight - (bubbleSize + edge));
+    state.x = clamp(state.x, edge, maxX);
+    state.y = clamp(state.y, minY, maxY);
   }
 
   function applyPositions() {
@@ -234,12 +246,17 @@
     bubble.style.left = `${Math.round(state.x)}px`;
     bubble.style.top = `${Math.round(state.y)}px`;
 
-    const panelWidth = 330;
-    const panelHeight = Math.min(470, Math.max(320, window.innerHeight - 120));
+    const compact = window.matchMedia("(max-width: 991.98px)").matches;
+    const panelWidth = compact ? Math.min(Math.round(window.innerWidth * 0.9), 320) : 330;
+    const panelHeight = compact
+      ? Math.min(Math.round(window.innerHeight * 0.64), 390)
+      : Math.min(470, Math.max(320, window.innerHeight - 120));
     panel.style.width = `${panelWidth}px`;
     panel.style.height = `${panelHeight}px`;
-    const panelX = clamp(state.x - panelWidth + 58, 12, window.innerWidth - panelWidth - 12);
-    const panelY = clamp(state.y - panelHeight - 14, 72, window.innerHeight - panelHeight - 12);
+    const edge = compact ? 10 : 12;
+    const minY = compact ? 64 : 72;
+    const panelX = clamp(state.x - panelWidth + 58, edge, window.innerWidth - panelWidth - edge);
+    const panelY = clamp(state.y - panelHeight - 14, minY, window.innerHeight - panelHeight - edge);
     panel.style.left = `${Math.round(panelX)}px`;
     panel.style.top = `${Math.round(panelY)}px`;
   }
@@ -457,8 +474,22 @@
   }
 
   function buildDefaultName(userName) {
+    return "My Companion";
+  }
+
+  function isLegacyAutoName(value, userName) {
+    const current = String(value || "").trim();
+    if (!current) return true;
+    if (current === "Zynee Companion") return true;
+
     const first = String(userName || "").trim().split(/\s+/)[0];
-    return first ? `${first}'s Companion` : "Zynee Companion";
+    if (!first) return false;
+    return current === `${first}'s Companion`;
+  }
+
+  function syncBubbleState() {
+    root.classList.toggle("is-open", Boolean(state.open));
+    bubble.setAttribute("aria-expanded", state.open ? "true" : "false");
   }
 
   function normalizeKey(value) {
@@ -731,8 +762,18 @@
         justify-content: center;
         font-size: 22px;
         box-shadow: 0 8px 20px rgba(80, 47, 107, 0.35);
+        opacity: 0.58;
+        touch-action: none;
+        transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        will-change: left, top, transform;
       }
       .zy-comp-bubble:active { cursor: grabbing; }
+      .zy-comp-bubble:hover,
+      .zy-comp-bubble:focus-visible,
+      .zy-comp-bubble.dragging,
+      .zy-comp-root.is-open .zy-comp-bubble {
+        opacity: 1;
+      }
       .zy-comp-panel {
         position: fixed;
         pointer-events: auto;
@@ -832,6 +873,9 @@
         background: var(--zy-comp-accent);
         color: #fff;
         font-size: 13px;
+        white-space: nowrap;
+        word-break: keep-all;
+        overflow-wrap: normal;
         cursor: pointer;
       }
       .zy-comp-send:disabled { opacity: 0.7; cursor: default; }
@@ -852,6 +896,13 @@
       }
       @media (max-width: 640px) {
         .zy-comp-panel { width: min(92vw, 340px) !important; }
+        .zy-comp-input {
+          font-size: 16px !important;
+        }
+        .zy-comp-send {
+          min-width: 70px !important;
+          font-size: 16px !important;
+        }
       }
     `;
     document.head.appendChild(style);

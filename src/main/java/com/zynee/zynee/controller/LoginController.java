@@ -10,7 +10,10 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -85,6 +88,7 @@ private JournalEntryRepository journalEntryRepository;
 public String saveJournalEntry(@RequestParam("content") String content,
                                @RequestParam("date") String date,
                                @RequestParam("time") String time,
+                               @RequestParam(value = "clientTimestamp", required = false) String clientTimestamp,
                                HttpSession session) {
     String email = (String) session.getAttribute("email");
     if (email == null) return "error";
@@ -100,6 +104,7 @@ public String saveJournalEntry(@RequestParam("content") String content,
         entry.setContent(content);
         entry.setDate(LocalDate.parse(date));
         entry.setTime(LocalTime.parse(time)); // ✅ supports "HH:mm"
+        entry.setCreatedAt(resolveJournalCreatedAtUtc(clientTimestamp, entry.getDate(), entry.getTime()));
 
         journalEntryRepository.save(entry);
         return "success";
@@ -141,6 +146,123 @@ private GuestSessionService guestSessionService;
             return Optional.empty();
         }
         return userRepository.findByEmail(email);
+    }
+
+    private boolean isGuestSession(HttpSession session) {
+        return session != null && Boolean.TRUE.equals(session.getAttribute("isGuest"));
+    }
+
+    private void applyGuestProfileFallbackModel(HttpSession session, Model model) {
+        if (session.getAttribute("name") == null) {
+            session.setAttribute("name", "Guest User");
+        }
+        if (session.getAttribute("initials") == null) {
+            session.setAttribute("initials", "G");
+        }
+        if (session.getAttribute("profileColor") == null) {
+            session.setAttribute("profileColor", "#8b5da9");
+        }
+        if (session.getAttribute("countryCode") == null) {
+            session.setAttribute("countryCode", "");
+        }
+        if (session.getAttribute("phone") == null) {
+            session.setAttribute("phone", "");
+        }
+        model.addAttribute("nameEditMessage", "Create an account to edit profile details.");
+        model.addAttribute("canEditName", false);
+        model.addAttribute("initials", session.getAttribute("initials"));
+        model.addAttribute("profileColor", session.getAttribute("profileColor"));
+        model.addAttribute("profilePhoto", session.getAttribute("profilePhoto"));
+    }
+
+    private String toServedProfilePhotoPath(String profilePhoto) {
+        String value = safeTrim(profilePhoto).replace('\\', '/');
+        if (value.isBlank()) {
+            return null;
+        }
+
+        final String currentPrefix = "/profile-pics/";
+        final String legacyPrefix = "/uploads/profile-pics/";
+        String fileName;
+        if (value.startsWith(currentPrefix)) {
+            fileName = value.substring(currentPrefix.length());
+        } else if (value.startsWith(legacyPrefix)) {
+            fileName = value.substring(legacyPrefix.length());
+        } else {
+            return null;
+        }
+
+        if (fileName.isBlank()
+                || fileName.contains("/")
+                || fileName.contains("\\")
+                || fileName.contains("..")) {
+            return null;
+        }
+
+        return currentPrefix + fileName;
+    }
+
+    private Path resolveProfilePhotoAbsolutePath(String profilePhoto) {
+        String servedPath = toServedProfilePhotoPath(profilePhoto);
+        if (servedPath == null) {
+            return null;
+        }
+
+        try {
+            Path profilePicsRoot = Paths.get("uploads", "profile-pics").toAbsolutePath().normalize();
+            String fileName = servedPath.substring("/profile-pics/".length());
+            Path candidate = profilePicsRoot.resolve(fileName).normalize();
+            if (!candidate.startsWith(profilePicsRoot)) {
+                return null;
+            }
+            return candidate;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String resolveUsableProfilePhotoPath(User user) {
+        if (user == null) return null;
+        String profilePhoto = safeTrim(user.getProfilePhoto());
+        if (profilePhoto.isBlank()) return null;
+
+        if (profilePhoto.startsWith("http://")
+                || profilePhoto.startsWith("https://")
+                || profilePhoto.startsWith("data:")) {
+            return profilePhoto;
+        }
+
+        String servedPath = toServedProfilePhotoPath(profilePhoto);
+        if (servedPath == null) {
+            return null;
+        }
+
+        Path candidate = resolveProfilePhotoAbsolutePath(servedPath);
+        if (candidate != null && Files.exists(candidate) && Files.isRegularFile(candidate)) {
+            return servedPath;
+        }
+        return null;
+    }
+
+    private void syncSessionProfilePhoto(HttpSession session) {
+        if (session == null) return;
+        Optional<User> userOpt = getCurrentUser(session);
+        if (userOpt.isEmpty()) {
+            session.removeAttribute("profilePhoto");
+            return;
+        }
+
+        User user = userOpt.get();
+        String validPhoto = resolveUsableProfilePhotoPath(user);
+        if (validPhoto == null && user.getProfilePhoto() != null && !user.getProfilePhoto().isBlank()) {
+            user.setProfilePhoto(null);
+            userRepository.save(user);
+        }
+        if (validPhoto == null) {
+            session.removeAttribute("profilePhoto");
+        } else {
+            session.setAttribute("profilePhoto", validPhoto);
+        }
     }
 
     private boolean isJournalPinSet(User user) {
@@ -211,13 +333,17 @@ private GuestSessionService guestSessionService;
         }
     }
 
-    private int normalizeMoodLevel(int rawMoodLevel) {
-        // Backward compatibility:
-        // older UI values were 0..4, newer ML-friendly scale is 1..5.
+    private int normalizeIncomingMoodLevel(int rawMoodLevel) {
+        // Mood slider submits 0..4. Persist canonical scale as 1..5.
         if (rawMoodLevel >= 0 && rawMoodLevel <= 4) {
             return rawMoodLevel + 1;
         }
         return Math.max(1, Math.min(5, rawMoodLevel));
+    }
+
+    private int normalizeStoredMoodLevel(int storedMoodLevel) {
+        // Stored values should be 1..5. Keep them stable for charting/statistics.
+        return Math.max(1, Math.min(5, storedMoodLevel));
     }
 
     private List<String> normalizeTextList(List<String> values, int maxItems, int maxLength) {
@@ -245,6 +371,37 @@ private GuestSessionService guestSessionService;
             }
         }
         return normalized;
+    }
+
+    private LocalDateTime resolveJournalCreatedAtUtc(String clientTimestamp, LocalDate fallbackDate, LocalTime fallbackTime) {
+        String normalized = safeTrim(clientTimestamp);
+        if (!normalized.isBlank()) {
+            try {
+                return OffsetDateTime.parse(normalized)
+                        .withOffsetSameInstant(ZoneOffset.UTC)
+                        .toLocalDateTime();
+            } catch (DateTimeParseException ignored) {
+                // fall through to a safe fallback
+            }
+        }
+        if (fallbackDate != null && fallbackTime != null) {
+            return LocalDateTime.of(fallbackDate, fallbackTime);
+        }
+        return LocalDateTime.now(ZoneOffset.UTC);
+    }
+
+    private String toJournalCreatedAtIso(JournalEntry entry) {
+        if (entry == null) {
+            return "";
+        }
+        LocalDateTime createdAt = entry.getCreatedAt();
+        if (createdAt == null && entry.getDate() != null && entry.getTime() != null) {
+            createdAt = LocalDateTime.of(entry.getDate(), entry.getTime());
+        }
+        if (createdAt == null) {
+            return "";
+        }
+        return createdAt.atOffset(ZoneOffset.UTC).toInstant().toString();
     }
 
     private void clearUserForecastAndPin(User user, HttpSession session) {
@@ -408,22 +565,17 @@ public Map<String, Object> getWeeklyStats(HttpSession session) {
 
     LocalDate today = LocalDate.now();
     LocalDate weekStart = today.with(java.time.DayOfWeek.MONDAY);   // Start of this week
+    LocalDate weekEnd = weekStart.plusDays(6); // End of this week (Sunday)
    // LocalDate weekStart = today.minusDays(6);
     LocalDateTime startOfWeek = weekStart.atStartOfDay();
-    LocalDateTime endOfWeek = today.atTime(23, 59, 59);
+    LocalDateTime endOfWeek = weekEnd.atTime(23, 59, 59);
 
     // Mood Log: count how many of each mood_level this week
     List<MoodLog> moodLogs = moodLogRepository.findByUserAndTimestampBetween(user, startOfWeek, endOfWeek);
-    System.out.println("📊 Logged in user: " + email);
-System.out.println("⏰ Weekly range: " + startOfWeek + " to " + endOfWeek);
-System.out.println("🎯 Mood logs fetched: " + moodLogs.size());
-for (MoodLog log : moodLogs) {
-    System.out.println("  ➤ Mood Level: " + log.getMoodLevel() + ", Timestamp: " + log.getTimestamp());
-}
 
     int[] moodCounts = new int[5]; // index 0=very sad ... 4=very happy
     for (MoodLog log : moodLogs) {
-        int normalizedLevel = normalizeMoodLevel(log.getMoodLevel());
+        int normalizedLevel = normalizeStoredMoodLevel(log.getMoodLevel());
         int chartIndex = normalizedLevel - 1;
         if (chartIndex >= 0 && chartIndex < moodCounts.length) {
             moodCounts[chartIndex]++;
@@ -440,17 +592,20 @@ for (int i = 0; i < 7; i++) {
 
 // Populate the map with tags from mood logs
 for (MoodLog log : moodLogs) {
+    if (log.getTimestamp() == null) {
+        continue;
+    }
     LocalDate logDate = log.getTimestamp().toLocalDate();
     String dayName = logDate.getDayOfWeek().toString().substring(0, 1).toUpperCase()
                      + logDate.getDayOfWeek().toString().substring(1).toLowerCase();
-    List<String> tags = log.getFeelings(); // assuming this is a List<String>
+    List<String> tags = normalizeTextList(log.getFeelings(), 50, 80);
     if (tags != null && !tags.isEmpty()) {
         dailyFeelings.get(dayName).addAll(tags);
     }
 }
 
     // Journal Entries per day (Mon-Sun)
-    List<JournalEntry> entries = journalEntryRepository.findByUserAndDateBetween(user, weekStart, today);
+    List<JournalEntry> entries = journalEntryRepository.findByUserAndDateBetween(user, weekStart, weekEnd);
     Map<String, Integer> dailyEntries = new java.util.LinkedHashMap<>();
     for (int i = 0; i < 7; i++) {
         LocalDate date = weekStart.plusDays(i);
@@ -490,6 +645,10 @@ for (MoodLog log : moodLogs) {
 }
 @GetMapping("/view-entries")
 public String showViewEntriesPage(HttpSession session) {
+    syncSessionProfilePhoto(session);
+    if (isGuestSession(session)) {
+        return "view-entries";
+    }
     Optional<User> userOpt = getCurrentUser(session);
     if (userOpt.isEmpty()) {
         return "redirect:/login.html?reauth=true";
@@ -688,6 +847,10 @@ public Map<String, Object> removeJournalPin(@RequestBody Map<String, String> pay
 @GetMapping("/api/journal-entries")
 @ResponseBody
 public org.springframework.http.ResponseEntity<?> getUserJournalEntries(HttpSession session) {
+    if (isGuestSession(session)) {
+        return org.springframework.http.ResponseEntity.ok(List.of());
+    }
+
     Optional<User> userOpt = getCurrentUser(session);
     if (userOpt.isEmpty()) {
         return org.springframework.http.ResponseEntity.status(401)
@@ -715,7 +878,8 @@ public org.springframework.http.ResponseEntity<?> getUserJournalEntries(HttpSess
             "id", entry.getId().toString(),
             "content", entry.getContent(),
             "date", entry.getDate().toString(),
-            "time", entry.getTime().toString()
+            "time", entry.getTime().toString(),
+            "createdAtIso", toJournalCreatedAtIso(entry)
         ));
     }
 
@@ -762,7 +926,7 @@ public String saveMood(@RequestParam int moodLevel,
 
     MoodLog moodLog = new MoodLog();
     moodLog.setUser(user);
-    moodLog.setMoodLevel(normalizeMoodLevel(moodLevel));
+    moodLog.setMoodLevel(normalizeIncomingMoodLevel(moodLevel));
     moodLog.setFeelings(normalizeTextList(feelings, 50, 80));
     moodLog.setTriggerTags(normalizeTextList(triggers, 20, 120));
     moodLog.setTimestamp(LocalDateTime.now());
@@ -798,6 +962,7 @@ public String saveMood(@RequestParam int moodLevel,
             }
 
             User user = userOpt.get();
+            Path oldPhotoPath = resolveProfilePhotoAbsolutePath(user.getProfilePhoto());
             String originalFilename = file.getOriginalFilename();
             if (originalFilename == null || !originalFilename.contains(".")) {
                 return "Invalid file format";
@@ -817,7 +982,16 @@ public String saveMood(@RequestParam int moodLevel,
             String photoPath = "/profile-pics/" + uniqueFileName;
             user.setProfilePhoto(photoPath);
             userRepository.save(user);
-            session.setAttribute("profilePhoto", photoPath);
+            session.setAttribute("user", user);
+            syncSessionProfilePhoto(session);
+
+            if (oldPhotoPath != null) {
+                try {
+                    Files.deleteIfExists(oldPhotoPath);
+                } catch (IOException cleanupError) {
+                    cleanupError.printStackTrace();
+                }
+            }
 
             return "Success: Image uploaded";
         } catch (Exception e) {
@@ -830,30 +1004,32 @@ public String saveMood(@RequestParam int moodLevel,
 @ResponseBody
     @SuppressWarnings("CallToPrintStackTrace")
 public String removeProfilePhoto(HttpSession session) {
-    String existingPath = (String) session.getAttribute("profilePhoto");
+    String email = (String) session.getAttribute("email");
+    if (email == null) {
+        return "User not logged in";
+    }
 
-    if (existingPath != null && !existingPath.isEmpty()) {
-        Path filePath = Paths.get("uploads", "profile-pics", existingPath.substring(existingPath.lastIndexOf('/') + 1));
+    Optional<User> userOpt = userRepository.findByEmail(email);
+    if (userOpt.isEmpty()) {
+        return "User not found";
+    }
 
+    User user = userOpt.get();
+    Path filePath = resolveProfilePhotoAbsolutePath(user.getProfilePhoto());
+    if (filePath != null) {
         try {
             Files.deleteIfExists(filePath);
-            session.removeAttribute("profilePhoto");
-
-            // Update user in DB
-            User user = (User) session.getAttribute("user");
-            if (user != null) {
-                user.setProfilePhoto(null);
-                userRepository.save(user); // or your DAO update
-            }
-
-            return "Success";
         } catch (IOException e) {
             e.printStackTrace();
-            return "Failed to delete photo";
         }
     }
 
-    return "No photo found";
+    user.setProfilePhoto(null);
+    userRepository.save(user);
+    session.setAttribute("user", user);
+    session.removeAttribute("profilePhoto");
+
+    return "Success";
 }
 
     // ===================== SIGNUP =====================
@@ -1047,7 +1223,7 @@ public String showHomePage(@RequestParam(value = "guest", required = false) Stri
     String email = (String) session.getAttribute("email");
     boolean guestBootstrapRequested = "1".equals(guest) || "true".equalsIgnoreCase(guest);
 
-    if (email == null && guestBootstrapRequested) {
+    if (guestBootstrapRequested) {
         guestSessionService.ensureGuestSession(session);
         email = (String) session.getAttribute("email");
     }
@@ -1060,14 +1236,22 @@ public String showHomePage(@RequestParam(value = "guest", required = false) Stri
     System.out.println("🏠 Home loaded. Email: " + email);
     model.addAttribute("email", email);
 
-    boolean onboardingRequired = false;
+    boolean isGuest = Boolean.TRUE.equals(session.getAttribute("isGuest"));
+    boolean onboardingRequired = isGuest;
     Optional<User> userOpt = userRepository.findByEmail(email);
     if (userOpt.isPresent()) {
         User user = userOpt.get();
-        onboardingRequired = user.needsFirstLoginOnboarding();
-        session.setAttribute("onboardingRequired", onboardingRequired);
-        session.setAttribute("dataAnalysisConsent", user.getDataAnalysisConsent());
+        syncSessionProfilePhoto(session);
+        if (!isGuest) {
+            // Keep onboarding visible for true first-login users and users who have not yet
+            // completed the consent choice flow.
+            onboardingRequired = user.needsFirstLoginOnboarding() || !user.hasDataAnalysisConsentChoice();
+            session.setAttribute("dataAnalysisConsent", user.getDataAnalysisConsent());
+        } else {
+            session.setAttribute("dataAnalysisConsent", null);
+        }
     }
+    session.setAttribute("onboardingRequired", onboardingRequired);
     model.addAttribute("onboardingRequired", onboardingRequired);
 
     if (session.getAttribute("justLoggedIn") != null) {
@@ -1086,12 +1270,14 @@ public String showHomePage(@RequestParam(value = "guest", required = false) Stri
 
     @GetMapping("/mood.html")
     public String moodPage(HttpSession session, Model model) {
+        syncSessionProfilePhoto(session);
         model.addAttribute("email", session.getAttribute("email"));
         return "mood";
     }
 
     @GetMapping("/journal.html")
     public String journalPage(HttpSession session, Model model) {
+        syncSessionProfilePhoto(session);
         model.addAttribute("email", session.getAttribute("email"));
         getCurrentUser(session).ifPresent(user -> {
             if (isJournalPinSet(user)) {
@@ -1104,12 +1290,14 @@ public String showHomePage(@RequestParam(value = "guest", required = false) Stri
 
     @GetMapping("/affirmation.html")
     public String showAffirmationPage(HttpSession session, Model model) {
+        syncSessionProfilePhoto(session);
         model.addAttribute("email", session.getAttribute("email"));
         return "affirmation.html";
     }
 
    @GetMapping("/stats.html")
 public String showStatsPage(HttpSession session, Model model) {
+    syncSessionProfilePhoto(session);
     String email = (String) session.getAttribute("email");
     model.addAttribute("email", email);
 
@@ -1117,7 +1305,9 @@ public String showStatsPage(HttpSession session, Model model) {
         List<MoodLog> logs = moodLogRepository.findByUserEmail(email)
             .stream()
             .filter(log -> log.getTimestamp().isAfter(LocalDateTime.now().minusDays(7)))
+            .filter(log -> log.getFeelings() != null && log.getFeelings().stream().anyMatch(feeling -> feeling != null && !feeling.trim().isBlank()))
             .collect(Collectors.toList());
+        logs.forEach(log -> log.setFeelings(normalizeTextList(log.getFeelings(), 50, 80)));
 
         model.addAttribute("feelingsList", logs);
     }
@@ -1127,6 +1317,7 @@ public String showStatsPage(HttpSession session, Model model) {
 
     @GetMapping("/music.html")
     public String showMusicPage(HttpSession session, Model model) {
+        syncSessionProfilePhoto(session);
         model.addAttribute("email", session.getAttribute("email"));
         model.addAttribute("initials", session.getAttribute("initials"));
         model.addAttribute("profileColor", session.getAttribute("profileColor"));
@@ -1139,20 +1330,24 @@ public String showStatsPage(HttpSession session, Model model) {
 
     @GetMapping("/about.html")
     public String aboutPage(HttpSession session, Model model) {
+        syncSessionProfilePhoto(session);
         model.addAttribute("email", session.getAttribute("email"));
         return "about.html";
     }
 
     @GetMapping("/candle.html")
     public String showCandlePage(HttpSession session, Model model) {
+        syncSessionProfilePhoto(session);
         model.addAttribute("email", session.getAttribute("email"));
         return "candle.html";
     }
 
     @GetMapping("/profile.html")
     public String showProfilePage(HttpSession session, Model model) {
+        syncSessionProfilePhoto(session);
         String email = (String) session.getAttribute("email");
-        if (email == null) return "redirect:/login.html";
+        if (email == null || email.isBlank()) return "redirect:/login.html";
+        boolean isGuest = isGuestSession(session);
 
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent()) {
@@ -1180,6 +1375,11 @@ public String showStatsPage(HttpSession session, Model model) {
             model.addAttribute("countryCodes", countryCodes);
             model.addAttribute("countryCode", session.getAttribute("countryCode"));
 
+            return "profile.html";
+        }
+
+        if (isGuest) {
+            applyGuestProfileFallbackModel(session, model);
             return "profile.html";
         }
 
@@ -1232,10 +1432,10 @@ public ResponseEntity<String> deleteAccount(HttpSession session) {
     // Delete profile photo file if present
     if (user.getProfilePhoto() != null && !user.getProfilePhoto().isBlank()) {
         try {
-            String fileName = user.getProfilePhoto()
-                .substring(user.getProfilePhoto().lastIndexOf('/') + 1);
-            Path photoPath = Paths.get("uploads", "profile-pics", fileName);
-            Files.deleteIfExists(photoPath);
+            Path photoPath = resolveProfilePhotoAbsolutePath(user.getProfilePhoto());
+            if (photoPath != null) {
+                Files.deleteIfExists(photoPath);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -1423,11 +1623,11 @@ private void writeMoodAnalysisSection(PdfTextWriter writer, List<MoodLog> moodLo
     }
 
     double avgMood = moodLogs.stream()
-            .mapToInt(log -> normalizeMoodLevel(log.getMoodLevel()))
+            .mapToInt(log -> normalizeStoredMoodLevel(log.getMoodLevel()))
             .average()
             .orElse(0.0);
-    long lowDays = moodLogs.stream().filter(log -> normalizeMoodLevel(log.getMoodLevel()) <= 2).count();
-    long goodDays = moodLogs.stream().filter(log -> normalizeMoodLevel(log.getMoodLevel()) >= 4).count();
+    long lowDays = moodLogs.stream().filter(log -> normalizeStoredMoodLevel(log.getMoodLevel()) <= 2).count();
+    long goodDays = moodLogs.stream().filter(log -> normalizeStoredMoodLevel(log.getMoodLevel()) >= 4).count();
 
     Map<String, Integer> feelingCounts = new HashMap<>();
     Map<String, Integer> triggerCounts = new HashMap<>();
@@ -1551,7 +1751,7 @@ private void writeRawLogsSection(
             String feelings = formatList(normalizeTextList(log.getFeelings(), 50, 80));
             String triggers = formatList(normalizeTextList(log.getTriggerTags(), 20, 120));
             writer.addLine("  - " + time
-                    + " | Mood " + normalizeMoodLevel(log.getMoodLevel()) + "/5"
+                    + " | Mood " + normalizeStoredMoodLevel(log.getMoodLevel()) + "/5"
                     + " | Feelings: " + feelings
                     + " | Triggers: " + triggers);
         }
@@ -1821,7 +2021,16 @@ private void setupSessionAfterLogin(User user, HttpSession session) {
     session.setAttribute("themeHue", user.getThemeHue());
     session.setAttribute("initials", initials);
     session.setAttribute("profileColor", profileColor);
-    session.setAttribute("profilePhoto", user.getProfilePhoto());
+    String validProfilePhoto = resolveUsableProfilePhotoPath(user);
+    if (validProfilePhoto == null && user.getProfilePhoto() != null && !user.getProfilePhoto().isBlank()) {
+        user.setProfilePhoto(null);
+        userRepository.save(user);
+    }
+    if (validProfilePhoto == null) {
+        session.removeAttribute("profilePhoto");
+    } else {
+        session.setAttribute("profilePhoto", validProfilePhoto);
+    }
     session.setAttribute("phone", phone);
     session.setAttribute("countryCode", matchedCode);
     session.setAttribute("justLoggedIn", true);

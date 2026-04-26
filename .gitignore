@@ -22,6 +22,11 @@ assistant-microservice/data/raw/
 assistant-microservice/data/processed/
 assistant-microservice/data/plots/
 
+# Local build/deploy outputs and DB dumps
+application.jar
+deploy.zip
+zynee_local_*.sql
+
 ### STS ###
 .apt_generated
 .classpath

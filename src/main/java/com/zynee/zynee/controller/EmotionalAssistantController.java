@@ -50,12 +50,11 @@ public class EmotionalAssistantController {
             return ResponseEntity.badRequest().body(Map.of("error", "Message is too long."));
         }
 
-        String userName = (String) session.getAttribute("name");
         String countryCode = (String) session.getAttribute("countryCode");
         List<Map<String, String>> history = extractHistory(payload.get("history"));
         try {
             localAssistantProcessManager.ensureAssistantRunningOnDemand();
-            String reply = emotionalAssistantService.getAssistantReply(message, userName, countryCode, history);
+            String reply = emotionalAssistantService.getAssistantReply(message, countryCode, history);
             return ResponseEntity.ok(Map.of("reply", reply));
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)

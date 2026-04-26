@@ -7,7 +7,6 @@ import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 
 import com.zynee.zynee.model.User;
-import com.zynee.zynee.repository.UserRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -15,10 +14,7 @@ import jakarta.servlet.http.HttpSession;
 @Service
 public class GuestSessionService {
 
-    private final UserRepository userRepository;
-
-    public GuestSessionService(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public GuestSessionService() {
     }
 
     public void startGuestSession(HttpServletRequest request) {
@@ -47,13 +43,6 @@ public class GuestSessionService {
 
     private void attachFreshGuest(HttpSession session) {
         User guestUser = createGuestUser();
-        try {
-            guestUser = userRepository.save(guestUser);
-        } catch (Exception ex) {
-            // Keep guest entry resilient even if DB insert fails unexpectedly.
-            System.err.println("⚠️ Guest user DB save failed: " + ex.getMessage());
-        }
-
         String sessionKey = UUID.randomUUID().toString();
         session.setAttribute("email", guestUser.getEmail());
         session.setAttribute("name", guestUser.getName());
@@ -67,8 +56,8 @@ public class GuestSessionService {
         session.setAttribute("phone", "");
         session.setAttribute("countryCode", "");
         session.setAttribute("justLoggedIn", true);
-        session.setAttribute("user", guestUser);
-        session.setAttribute("userId", guestUser.getId());
+        session.removeAttribute("user");
+        session.removeAttribute("userId");
         session.setAttribute("assistantSessionKey", sessionKey);
         session.setAttribute("isGuest", true);
         session.setAttribute("onboardingRequired", true);
@@ -100,6 +89,6 @@ public class GuestSessionService {
     }
 
     private String buildGuestEmail() {
-        return "guest+" + UUID.randomUUID().toString().replace("-", "") + "@zynee.local";
+        return "guest-session+" + UUID.randomUUID().toString().replace("-", "") + "@zynee.local";
     }
 }
