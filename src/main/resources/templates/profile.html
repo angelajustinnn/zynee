@@ -780,7 +780,8 @@ function previewSelectedPhoto(input) {
 
   // Send request to remove photo from server
   fetch('/remove-profile-photo', {
-    method: 'POST'
+    method: 'POST',
+    credentials: 'same-origin'
   })
   .then(response => response.text())
   .then(result => {
@@ -816,17 +817,27 @@ function uploadCroppedPhoto() {
 
     fetch("/upload-profile-photo", {
   method: "POST",
-  body: formData
+  body: formData,
+  credentials: "same-origin"
 })
-.then(res => res.ok ? res.text() : Promise.reject(res))
+.then(async (res) => {
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(text || "Upload failed");
+  }
+  return text;
+})
 .then(data => {
   console.log("📨 Server response:", data);
   if (data.includes("Success")) {
-    window.location.href = "/profile.html"; // Replace with your actual profile route
+    window.location.href = "/profile.html";
+    return;
   }
+  alert(data || "Could not upload profile photo.");
 })
 .catch(err => {
   console.error("❌ Upload error:", err);
+  alert(err && err.message ? err.message : "Could not upload profile photo.");
 });
   }, "image/jpeg");
 }

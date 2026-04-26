@@ -202,6 +202,12 @@ private GuestSessionService guestSessionService;
         return currentPrefix + fileName;
     }
 
+    private Path getProfilePhotoRootDirectory() {
+        return Paths.get(System.getProperty("user.dir"), "uploads", "profile-pics")
+                .toAbsolutePath()
+                .normalize();
+    }
+
     private Path resolveProfilePhotoAbsolutePath(String profilePhoto) {
         String servedPath = toServedProfilePhotoPath(profilePhoto);
         if (servedPath == null) {
@@ -209,7 +215,7 @@ private GuestSessionService guestSessionService;
         }
 
         try {
-            Path profilePicsRoot = Paths.get("uploads", "profile-pics").toAbsolutePath().normalize();
+            Path profilePicsRoot = getProfilePhotoRootDirectory();
             String fileName = servedPath.substring("/profile-pics/".length());
             Path candidate = profilePicsRoot.resolve(fileName).normalize();
             if (!candidate.startsWith(profilePicsRoot)) {
@@ -945,6 +951,10 @@ public String saveMood(@RequestParam int moodLevel,
         try {
             System.out.println("📥 Received upload request");
 
+            if (isGuestSession(session)) {
+                return "Guest mode cannot upload profile photo";
+            }
+
             if (file.isEmpty()) {
                 System.out.println("⚠️ File is empty");
                 return "No file uploaded";
@@ -970,7 +980,7 @@ public String saveMood(@RequestParam int moodLevel,
             String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
 
             String uniqueFileName = UUID.randomUUID().toString() + extension;
-            Path uploadPath = Paths.get(System.getProperty("user.dir"), "uploads", "profile-pics");
+            Path uploadPath = getProfilePhotoRootDirectory();
             System.out.println("📂 Saving to: " + uploadPath.toAbsolutePath());
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
@@ -1238,6 +1248,14 @@ public String showHomePage(@RequestParam(value = "guest", required = false) Stri
 
     boolean isGuest = Boolean.TRUE.equals(session.getAttribute("isGuest"));
     boolean onboardingRequired = isGuest;
+    boolean showGuestWelcomeBanner = false;
+    if (isGuest) {
+        boolean alreadyShown = Boolean.TRUE.equals(session.getAttribute("guestWelcomeShown"));
+        showGuestWelcomeBanner = guestBootstrapRequested && !alreadyShown;
+        if (showGuestWelcomeBanner) {
+            session.setAttribute("guestWelcomeShown", true);
+        }
+    }
     Optional<User> userOpt = userRepository.findByEmail(email);
     if (userOpt.isPresent()) {
         User user = userOpt.get();
@@ -1253,9 +1271,11 @@ public String showHomePage(@RequestParam(value = "guest", required = false) Stri
     }
     session.setAttribute("onboardingRequired", onboardingRequired);
     model.addAttribute("onboardingRequired", onboardingRequired);
+    model.addAttribute("showGuestWelcomeBanner", showGuestWelcomeBanner);
 
-    if (session.getAttribute("justLoggedIn") != null) {
-        model.addAttribute("justLoggedIn", true);
+    boolean justLoggedIn = session.getAttribute("justLoggedIn") != null;
+    model.addAttribute("justLoggedIn", justLoggedIn);
+    if (justLoggedIn) {
         session.removeAttribute("justLoggedIn");
     }
 

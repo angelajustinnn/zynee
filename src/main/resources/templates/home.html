@@ -1162,7 +1162,7 @@ body.widgets-editing .widget-item:active {
   <div id="suggestionsBox" class="suggestions"></div>
 
  <!-- ✅ Welcome Banner -->
-<div id="welcomeBox" class="welcome-box" th:attr="data-onboarding-required=${onboardingRequired}">
+<div id="welcomeBox" class="welcome-box hidden" th:attr="data-onboarding-required=${onboardingRequired}">
   <button type="button" class="close-btn" aria-label="Close welcome banner" onclick="window.__zyneeDismissWelcome && window.__zyneeDismissWelcome('close-inline', false)">×</button>
   <div class="welcome-title">Welcome to Zyneé!</div>
   <div class="welcome-msg">Your Emotions, Beautifully Understood</div>
@@ -1173,7 +1173,7 @@ body.widgets-editing .widget-item:active {
 </div>
 
   <!-- Blocker Overlay -->
-  <div id="blocker" class="blocker"></div>
+  <div id="blocker" class="blocker hidden"></div>
 
 <script>
 (function () {
@@ -1393,12 +1393,16 @@ function goToSuggestion(url) {
 window.ZYNEE_FIRST_LOGIN_ONBOARDING_REQUIRED = false;
 window.ZYNEE_IS_GUEST = false;
 window.ZYNEE_FORCE_DEFAULT_THEME = false;
+window.ZYNEE_JUST_LOGGED_IN = false;
+window.ZYNEE_SHOW_GUEST_WELCOME = false;
 </script>
 
 <script th:inline="javascript">
 window.ZYNEE_FIRST_LOGIN_ONBOARDING_REQUIRED = /*[[${onboardingRequired}]]*/ false;
 window.ZYNEE_IS_GUEST = /*[[${session.isGuest == true}]]*/ false;
 window.ZYNEE_FORCE_DEFAULT_THEME = /*[[${forceDefaultTheme}]]*/ false;
+window.ZYNEE_JUST_LOGGED_IN = /*[[${justLoggedIn}]]*/ false;
+window.ZYNEE_SHOW_GUEST_WELCOME = /*[[${showGuestWelcomeBanner}]]*/ false;
 </script>
 
 <script>
@@ -1452,7 +1456,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const guestUpgradeClose = document.getElementById("guestUpgradeClose");
   const isFirstLoginOnboardingUser = window.ZYNEE_FIRST_LOGIN_ONBOARDING_REQUIRED === true;
   const isGuestUser = window.ZYNEE_IS_GUEST === true;
-  const shouldForceOnboardingBanner = isFirstLoginOnboardingUser || isGuestUser;
+  const isGuestWelcomeEntry = isGuestUser && window.ZYNEE_SHOW_GUEST_WELCOME === true;
+  const shouldForceOnboardingBanner = isFirstLoginOnboardingUser || isGuestWelcomeEntry;
   if (welcomeActions) {
     welcomeActions.classList.toggle("hidden", !shouldForceOnboardingBanner);
   }
@@ -1464,7 +1469,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   const shouldShowWelcomeBanner = pageParams.get("noWelcome") === "1"
     ? false
-    : (shouldForceOnboardingBanner || !sessionStorage.getItem("welcomeShown"));
+    : (isGuestUser
+        ? isGuestWelcomeEntry
+        : (shouldForceOnboardingBanner || !sessionStorage.getItem("welcomeShown")));
 
   const dismissWelcomeBanner = () => {
     welcomeBox.classList.add("hidden");
@@ -1531,6 +1538,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (isGuestUser) {
     const params = new URLSearchParams(window.location.search || "");
+    if (params.has("guest")) {
+      params.delete("guest");
+      const queryString = params.toString();
+      const cleanUrl = `${window.location.pathname}${queryString ? `?${queryString}` : ""}${window.location.hash || ""}`;
+      window.history.replaceState({}, "", cleanUrl);
+    }
     if (params.get("guestRestricted") === "true") {
       showGuestUpgradeBanner(params.get("feature"));
       params.delete("guestRestricted");

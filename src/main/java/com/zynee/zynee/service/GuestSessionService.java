@@ -61,6 +61,7 @@ public class GuestSessionService {
         session.setAttribute("assistantSessionKey", sessionKey);
         session.setAttribute("isGuest", true);
         session.setAttribute("onboardingRequired", true);
+        session.removeAttribute("guestWelcomeShown");
         session.setAttribute("forceDefaultTheme", true);
         session.setAttribute("dataAnalysisConsent", null);
         session.removeAttribute("otp");

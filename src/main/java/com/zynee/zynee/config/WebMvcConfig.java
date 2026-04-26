@@ -11,7 +11,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String uploadDir = Paths.get("uploads/profile-pics/").toAbsolutePath().toUri().toString();
+        String uploadDir = Paths.get(System.getProperty("user.dir"), "uploads", "profile-pics")
+                .toAbsolutePath()
+                .toUri()
+                .toString();
         System.out.println("🛠 Resource handler mapping: " + uploadDir);
 
         registry.addResourceHandler("/profile-pics/**")
