@@ -1,11 +1,12 @@
-# Zynee Local AI Microservice (Free)
+# Zynee AI Microservice
 
-This service uses a local model through Ollama, with no paid cloud API dependency.
+This service now supports Gemini (default) and Ollama (optional fallback).
 
-## 1) Start Ollama and pull model
+## 1) Set Gemini API key (required for default provider)
 
 ```bash
-ollama pull llama3.2
+export GEMINI_API_KEY="your_gemini_api_key"
+export GEMINI_MODEL="gemini-2.5-flash-lite"
 ```
 
 ## 2) Create Python env and install packages
@@ -32,25 +33,34 @@ cd /Users/angelajustin/Desktop/netset/zynee/zynee
 ./mvnw spring-boot:run
 ```
 
-The Java app now calls:
+The Java app calls:
 
 - `http://127.0.0.1:8001/chat` (Python service)
-- Python service calls local Ollama model (default: `llama3.2`)
+- Python service calls Gemini API by default
 
 Optional environment variables for Python service:
 
+- `LLM_PROVIDER` (default `gemini`, optional: `ollama`)
+- `GEMINI_API_KEY` (required when provider is `gemini`)
+- `GEMINI_MODEL` (default `gemini-2.5-flash-lite`)
+- `GEMINI_API_BASE` (default `https://generativelanguage.googleapis.com/v1beta`)
+- `LLM_TIMEOUT_SECONDS` (default `90`)
+- `LLM_TEMPERATURE` (default `0.5`)
+- `LLM_NUM_PREDICT` (default `260`, lower is faster)
+- `LLM_LONG_NUM_PREDICT` (default `520`)
+
+Optional Ollama fallback variables:
+
 - `OLLAMA_URL` (default `http://127.0.0.1:11434/api/chat`)
 - `OLLAMA_MODEL` (default `llama3.2`)
-- `OLLAMA_TIMEOUT_SECONDS` (default `90`)
-- `OLLAMA_TEMPERATURE` (default `0.5`)
-- `OLLAMA_NUM_PREDICT` (default `120`, lower is faster)
 - `OLLAMA_KEEP_ALIVE` (default `30m`)
+- `OLLAMA_REPEAT_PENALTY` (default `1.15`)
 
 ## 5) Train suicide-risk model from your datasets
 
 The assistant supports a hybrid safety flow:
 - ML classifier (trained from your CSV data) for suicide-risk screening
-- Ollama chat for non-crisis messages
+- LLM chat (Gemini by default) for non-crisis messages
 
 Use this command to train and export the model bundle:
 
@@ -118,4 +128,4 @@ This endpoint blends:
 - Mood logs
 - Journal entries
 - Quick check-ins
-- Sun-sign traits (+ Ollama wording fallback)
+- Sun-sign traits (+ LLM wording fallback)

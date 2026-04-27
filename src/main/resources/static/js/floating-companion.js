@@ -338,7 +338,7 @@
       text.includes("assistant is unavailable") ||
       text.includes("temporarily unavailable") ||
       text.includes("could not reach local assistant") ||
-      text.includes("start ollama");
+      text.includes("start assistant service");
   }
 
   function wait(ms) {

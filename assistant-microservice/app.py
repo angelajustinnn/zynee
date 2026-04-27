@@ -35,14 +35,43 @@ def _parse_env_int(name: str, default: int, low: int, high: int) -> int:
     return max(low, min(high, parsed))
 
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434/api/chat")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
-OLLAMA_TIMEOUT_SECONDS = _parse_env_float("OLLAMA_TIMEOUT_SECONDS", 90.0, 10.0, 240.0)
-OLLAMA_TEMPERATURE = _parse_env_float("OLLAMA_TEMPERATURE", 0.5, 0.0, 1.2)
-OLLAMA_NUM_PREDICT = _parse_env_int("OLLAMA_NUM_PREDICT", 260, 80, 2048)
-OLLAMA_LONG_NUM_PREDICT = _parse_env_int("OLLAMA_LONG_NUM_PREDICT", 520, 120, 3072)
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
+if LLM_PROVIDER not in {"gemini", "ollama"}:
+    LLM_PROVIDER = "gemini"
+
+LLM_TIMEOUT_SECONDS = _parse_env_float(
+    "LLM_TIMEOUT_SECONDS",
+    _parse_env_float("OLLAMA_TIMEOUT_SECONDS", 90.0, 10.0, 240.0),
+    10.0,
+    240.0,
+)
+LLM_TEMPERATURE = _parse_env_float(
+    "LLM_TEMPERATURE",
+    _parse_env_float("OLLAMA_TEMPERATURE", 0.5, 0.0, 1.2),
+    0.0,
+    1.2,
+)
+LLM_NUM_PREDICT = _parse_env_int(
+    "LLM_NUM_PREDICT",
+    _parse_env_int("OLLAMA_NUM_PREDICT", 260, 80, 2048),
+    80,
+    2048,
+)
+LLM_LONG_NUM_PREDICT = _parse_env_int(
+    "LLM_LONG_NUM_PREDICT",
+    _parse_env_int("OLLAMA_LONG_NUM_PREDICT", 520, 120, 3072),
+    120,
+    3072,
+)
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite").strip()
+GEMINI_API_BASE = os.getenv("GEMINI_API_BASE", "https://generativelanguage.googleapis.com/v1beta").strip()
+
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434/api/chat").strip()
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2").strip()
 OLLAMA_REPEAT_PENALTY = _parse_env_float("OLLAMA_REPEAT_PENALTY", 1.15, 1.0, 2.0)
-OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "30m")
+OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "30m").strip()
 
 BASE_DIR = Path(__file__).resolve().parent
 SUICIDE_MODEL_PATH = Path(
@@ -244,7 +273,8 @@ def health() -> dict:
     sentiment_model = get_sentiment_model()
     return {
         "status": "ok",
-        "model": OLLAMA_MODEL,
+        "provider": LLM_PROVIDER,
+        "model": active_llm_model(),
         "suicideModelLoaded": model is not None,
         "suicideModelPath": str(SUICIDE_MODEL_PATH),
         "suicideModelError": SUICIDE_MODEL_ERROR,
@@ -273,54 +303,8 @@ def chat(payload: ChatRequest) -> dict:
 
     system_prompt = build_system_prompt(country_code)
     num_predict = choose_num_predict(user_message)
-
-    ollama_payload = {
-        "model": OLLAMA_MODEL,
-        "stream": False,
-        "keep_alive": OLLAMA_KEEP_ALIVE,
-        "options": {
-            "temperature": OLLAMA_TEMPERATURE,
-            "repeat_penalty": OLLAMA_REPEAT_PENALTY,
-            "num_predict": num_predict,
-        },
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            *history_messages,
-            {"role": "user", "content": user_message},
-        ],
-    }
-
-    try:
-        response = requests.post(OLLAMA_URL, json=ollama_payload, timeout=OLLAMA_TIMEOUT_SECONDS)
-    except requests.RequestException as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Could not reach Ollama. Start Ollama first and ensure model '"
-                + OLLAMA_MODEL
-                + "' is available."
-            ),
-        ) from exc
-
-    if response.status_code != 200:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Ollama error ({response.status_code}): {extract_ollama_error(response)}",
-        )
-
-    try:
-        data = response.json()
-    except ValueError as exc:
-        raise HTTPException(status_code=502, detail="Ollama returned invalid JSON.") from exc
-
-    reply = ""
-    if isinstance(data, dict):
-        message = data.get("message", {})
-        if isinstance(message, dict):
-            reply = str(message.get("content", "")).strip()
-
-    if not reply:
-        raise HTTPException(status_code=502, detail="Ollama returned an empty response.")
+    llm_messages = [*history_messages, {"role": "user", "content": user_message}]
+    reply = call_llm(system_prompt, llm_messages, LLM_TEMPERATURE, num_predict)
 
     reply = sanitize_conversational_reply(reply)
 
@@ -526,6 +510,195 @@ def sanitize_history(raw_history: list[dict[str, str]]) -> list[dict[str, str]]:
             continue
         cleaned.append({"role": role, "content": content[:1000]})
     return cleaned
+
+
+def active_llm_model() -> str:
+    return GEMINI_MODEL if LLM_PROVIDER == "gemini" else OLLAMA_MODEL
+
+
+def to_gemini_contents(messages: list[dict[str, str]]) -> list[dict[str, object]]:
+    contents: list[dict[str, object]] = []
+    for item in messages:
+        role = str(item.get("role", "")).strip().lower()
+        content = clean_text(item.get("content", ""))
+        if role not in {"user", "assistant"} or not content:
+            continue
+        contents.append(
+            {
+                "role": "model" if role == "assistant" else "user",
+                "parts": [{"text": content}],
+            }
+        )
+    return contents
+
+
+def normalize_gemini_model_name(model: str) -> str:
+    cleaned = clean_text(model)
+    if not cleaned:
+        return "models/gemini-2.5-flash-lite"
+    if cleaned.startswith("models/"):
+        return cleaned
+    return f"models/{cleaned}"
+
+
+def extract_model_text(data: object) -> str:
+    if not isinstance(data, dict):
+        return ""
+
+    candidates = data.get("candidates")
+    if isinstance(candidates, list):
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            content = candidate.get("content", {})
+            if not isinstance(content, dict):
+                continue
+            parts = content.get("parts", [])
+            if not isinstance(parts, list):
+                continue
+            text_parts: list[str] = []
+            for part in parts:
+                if not isinstance(part, dict):
+                    continue
+                part_text = clean_text(part.get("text", ""))
+                if part_text:
+                    text_parts.append(part_text)
+            if text_parts:
+                return "\n".join(text_parts).strip()
+
+    message = data.get("message")
+    if isinstance(message, dict):
+        return clean_text(message.get("content", ""))
+
+    return ""
+
+
+def extract_llm_error(response: requests.Response) -> str:
+    try:
+        data = response.json()
+    except ValueError:
+        text = response.text.strip()
+        return text if text else "Unknown LLM error."
+
+    if isinstance(data, dict):
+        error_data = data.get("error")
+        if isinstance(error_data, dict):
+            message = clean_text(error_data.get("message", ""))
+            if message:
+                return message
+        if error_data:
+            return clean_text(error_data)
+
+        if data.get("message"):
+            return clean_text(data.get("message"))
+
+        prompt_feedback = data.get("promptFeedback")
+        if isinstance(prompt_feedback, dict):
+            block_reason = clean_text(prompt_feedback.get("blockReason", ""))
+            if block_reason:
+                return f"Blocked by provider policy: {block_reason}"
+
+    return clean_text(data) or "Unknown LLM error."
+
+
+def call_ollama(system_prompt: str, messages: list[dict[str, str]], temperature: float, num_predict: int) -> str:
+    payload = {
+        "model": OLLAMA_MODEL,
+        "stream": False,
+        "keep_alive": OLLAMA_KEEP_ALIVE,
+        "options": {
+            "temperature": temperature,
+            "repeat_penalty": OLLAMA_REPEAT_PENALTY,
+            "num_predict": num_predict,
+        },
+        "messages": [{"role": "system", "content": system_prompt}, *messages],
+    }
+    try:
+        response = requests.post(OLLAMA_URL, json=payload, timeout=LLM_TIMEOUT_SECONDS)
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Could not reach Ollama. Start Ollama first and ensure model '"
+                + OLLAMA_MODEL
+                + "' is available."
+            ),
+        ) from exc
+
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Ollama error ({response.status_code}): {extract_llm_error(response)}",
+        )
+
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail="Ollama returned invalid JSON.") from exc
+
+    reply = extract_model_text(data)
+    if not reply:
+        raise HTTPException(status_code=502, detail="Ollama returned an empty response.")
+    return reply
+
+
+def call_gemini(system_prompt: str, messages: list[dict[str, str]], temperature: float, num_predict: int) -> str:
+    if not GEMINI_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini API key is missing. Set GEMINI_API_KEY and retry.",
+        )
+
+    model_name = normalize_gemini_model_name(GEMINI_MODEL)
+    api_base = GEMINI_API_BASE.rstrip("/")
+    url = f"{api_base}/{model_name}:generateContent"
+    payload = {
+        "system_instruction": {"parts": [{"text": system_prompt}]},
+        "contents": to_gemini_contents(messages),
+        "generationConfig": {
+            "temperature": temperature,
+            "maxOutputTokens": num_predict,
+            "candidateCount": 1,
+        },
+    }
+
+    try:
+        response = requests.post(
+            url,
+            json=payload,
+            timeout=LLM_TIMEOUT_SECONDS,
+            headers={
+                "Content-Type": "application/json",
+                "x-goog-api-key": GEMINI_API_KEY,
+            },
+        )
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Could not reach Gemini API. Check network access and GEMINI_API_KEY.",
+        ) from exc
+
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Gemini error ({response.status_code}): {extract_llm_error(response)}",
+        )
+
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail="Gemini returned invalid JSON.") from exc
+
+    reply = extract_model_text(data)
+    if not reply:
+        raise HTTPException(status_code=502, detail="Gemini returned an empty response.")
+    return reply
+
+
+def call_llm(system_prompt: str, messages: list[dict[str, str]], temperature: float, num_predict: int) -> str:
+    if LLM_PROVIDER == "gemini":
+        return call_gemini(system_prompt, messages, temperature, num_predict)
+    return call_ollama(system_prompt, messages, temperature, num_predict)
 
 
 def sanitize_conversational_reply(reply: str) -> str:
@@ -1342,39 +1515,22 @@ def build_daily_cosmic_seed(parts: list[str]) -> int:
     return int(digest[:8], 16)
 
 
-def generate_cosmic_vibe_with_ollama(prompt: str, seed: int) -> tuple[str, str]:
-    payload = {
-        "model": OLLAMA_MODEL,
-        "stream": False,
-        "keep_alive": OLLAMA_KEEP_ALIVE,
-        "options": {
-            "temperature": 0.2,
-            "repeat_penalty": OLLAMA_REPEAT_PENALTY,
-            "num_predict": 170,
-            "seed": seed,
-        },
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You create a cute and simple daily cosmic mood note.\n"
-                    "Output ONLY valid JSON with keys: headline, context.\n"
-                    "headline: 3-8 words, plain language, no emoji, no symbols.\n"
-                    "context: 1-2 short sentences, max 34 words, focused only on mood and feelings.\n"
-                    "Use only the provided horoscope + signal summary. Do not invent details.\n"
-                    "Do not mention productivity, career, money, medicine, legal topics, or warnings."
-                ),
-            },
-            {"role": "user", "content": prompt},
-        ],
-    }
+def generate_cosmic_vibe_with_llm(prompt: str, _seed: int) -> tuple[str, str]:
+    system_prompt = (
+        "You create a cute and simple daily cosmic mood note.\n"
+        "Output ONLY valid JSON with keys: headline, context.\n"
+        "headline: 3-8 words, plain language, no emoji, no symbols.\n"
+        "context: 1-2 short sentences, max 34 words, focused only on mood and feelings.\n"
+        "Use only the provided horoscope + signal summary. Do not invent details.\n"
+        "Do not mention productivity, career, money, medicine, legal topics, or warnings."
+    )
     try:
-        response = requests.post(OLLAMA_URL, json=payload, timeout=min(20.0, OLLAMA_TIMEOUT_SECONDS))
-        if response.status_code != 200:
-            return "", ""
-        data = response.json()
-        message = data.get("message", {}) if isinstance(data, dict) else {}
-        text = str(message.get("content", "")).strip() if isinstance(message, dict) else ""
+        text = call_llm(
+            system_prompt=system_prompt,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+            num_predict=170,
+        )
         return extract_cosmic_vibe_parts(text[:700])
     except Exception:
         return "", ""
@@ -1429,7 +1585,7 @@ def build_cosmic_summary(
         f"Mood focus: {mood_focus}. Feeling pattern: {feeling_focus}. Pattern summary: {pattern['dominantMoodPattern']}. Weekly tone: {weekly['overallWeeklyCheckin']}. "
         "Write one simple daily headline and one short context."
     )
-    vibe_headline, vibe_context = generate_cosmic_vibe_with_ollama(prompt, cosmic_seed)
+    vibe_headline, vibe_context = generate_cosmic_vibe_with_llm(prompt, cosmic_seed)
     vibe_headline = simplify_cosmic_text(vibe_headline, max_chars=70, max_words=8, ensure_punctuation=False)
     vibe_context = simplify_cosmic_text(vibe_context, max_chars=170, max_words=28, ensure_punctuation=True)
 
@@ -1452,7 +1608,7 @@ def build_cosmic_summary(
         "dailyContext": final_context,
         "tomorrowVibe": tomorrow_vibe,
         "confidence": f"{combined['confidence']}%",
-        "source": "hybrid-ml-ollama-daily",
+        "source": f"hybrid-ml-{LLM_PROVIDER}-daily",
         "countryCode": country_code or "",
     }
 
@@ -1483,8 +1639,8 @@ def choose_num_predict(user_message: str) -> int:
         "please help",
     )
     if any(pattern in text for pattern in long_request_patterns) or any(pattern in text for pattern in support_patterns):
-        return max(OLLAMA_LONG_NUM_PREDICT, OLLAMA_NUM_PREDICT)
-    return OLLAMA_NUM_PREDICT
+        return max(LLM_LONG_NUM_PREDICT, LLM_NUM_PREDICT)
+    return LLM_NUM_PREDICT
 
 
 def parse_timestamp(raw: Optional[str]) -> Optional[datetime]:
@@ -1537,19 +1693,3 @@ def score_to_mood(score: float) -> str:
 
 def clamp_float(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
-
-
-def extract_ollama_error(response: requests.Response) -> str:
-    try:
-        data = response.json()
-    except ValueError:
-        text = response.text.strip()
-        return text if text else "Unknown Ollama error."
-
-    if isinstance(data, dict):
-        if data.get("error"):
-            return str(data["error"])
-        if data.get("message"):
-            return str(data["message"])
-
-    return str(data)
