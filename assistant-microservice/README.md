@@ -1,6 +1,10 @@
 # Zynee AI Microservice
 
-This service now supports Gemini (default) and Ollama (optional fallback).
+This service supports multi-provider LLM fallback:
+- Gemini
+- Vercel AI Gateway
+- Groq
+- Ollama (local)
 
 ## 1) Set Gemini API key (required for default provider)
 
@@ -40,10 +44,17 @@ The Java app calls:
 
 Optional environment variables for Python service:
 
-- `LLM_PROVIDER` (default `gemini`, optional: `ollama`)
-- `GEMINI_API_KEY` (required when provider is `gemini`)
+- `LLM_PROVIDER` (default `gemini`; can be `gemini`, `vercel`, `groq`, `ollama`, or `auto`)
+- `LLM_FALLBACK_ORDER` (default `gemini,vercel,groq,ollama`)
+- `GEMINI_API_KEY` (required when Gemini is used in chain)
 - `GEMINI_MODEL` (default `gemini-2.5-flash-lite`)
 - `GEMINI_API_BASE` (default `https://generativelanguage.googleapis.com/v1beta`)
+- `VERCEL_AI_GATEWAY_API_KEY` (or `AI_GATEWAY_API_KEY`; required when Vercel is used in chain)
+- `VERCEL_MODEL` (default `google/gemini-2.5-flash-lite`)
+- `VERCEL_API_BASE` (default `https://ai-gateway.vercel.sh/v1`)
+- `GROQ_API_KEY` (required when Groq is used in chain)
+- `GROQ_MODEL` (default `llama-3.1-8b-instant`)
+- `GROQ_API_BASE` (default `https://api.groq.com/openai/v1`)
 - `LLM_TIMEOUT_SECONDS` (default `90`)
 - `LLM_TEMPERATURE` (default `0.5`)
 - `LLM_NUM_PREDICT` (default `260`, lower is faster)

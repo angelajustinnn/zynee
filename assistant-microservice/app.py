@@ -7,7 +7,7 @@ import statistics
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import joblib
 import requests
@@ -35,9 +35,47 @@ def _parse_env_int(name: str, default: int, low: int, high: int) -> int:
     return max(low, min(high, parsed))
 
 
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
-if LLM_PROVIDER not in {"gemini", "ollama"}:
-    LLM_PROVIDER = "gemini"
+SUPPORTED_LLM_PROVIDERS = ("gemini", "vercel", "groq", "ollama")
+DEFAULT_LLM_FALLBACK_ORDER = "gemini,vercel,groq,ollama"
+
+
+def _normalize_provider_name(raw: str) -> str:
+    return ("" if raw is None else str(raw)).strip().lower()
+
+
+def _parse_provider_list(raw: str) -> list[str]:
+    tokens = re.split(r"[,\s]+", raw.strip()) if raw else []
+    parsed: list[str] = []
+    for token in tokens:
+        provider = _normalize_provider_name(token)
+        if provider in SUPPORTED_LLM_PROVIDERS and provider not in parsed:
+            parsed.append(provider)
+    return parsed
+
+
+PRIMARY_LLM_PROVIDER = _normalize_provider_name(os.getenv("LLM_PROVIDER", "gemini"))
+if PRIMARY_LLM_PROVIDER not in (*SUPPORTED_LLM_PROVIDERS, "auto"):
+    PRIMARY_LLM_PROVIDER = "auto"
+
+LLM_FALLBACK_ORDER = _parse_provider_list(os.getenv("LLM_FALLBACK_ORDER", DEFAULT_LLM_FALLBACK_ORDER))
+if not LLM_FALLBACK_ORDER:
+    LLM_FALLBACK_ORDER = _parse_provider_list(DEFAULT_LLM_FALLBACK_ORDER)
+
+
+def resolve_provider_chain() -> list[str]:
+    if PRIMARY_LLM_PROVIDER == "auto":
+        chain = [*LLM_FALLBACK_ORDER]
+    else:
+        chain = [PRIMARY_LLM_PROVIDER, *LLM_FALLBACK_ORDER]
+
+    deduped: list[str] = []
+    for provider in chain:
+        if provider in SUPPORTED_LLM_PROVIDERS and provider not in deduped:
+            deduped.append(provider)
+    return deduped or ["gemini"]
+
+
+LLM_PROVIDER_CHAIN = resolve_provider_chain()
 
 LLM_TIMEOUT_SECONDS = _parse_env_float(
     "LLM_TIMEOUT_SECONDS",
@@ -67,6 +105,17 @@ LLM_LONG_NUM_PREDICT = _parse_env_int(
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite").strip()
 GEMINI_API_BASE = os.getenv("GEMINI_API_BASE", "https://generativelanguage.googleapis.com/v1beta").strip()
+
+VERCEL_AI_GATEWAY_API_KEY = os.getenv(
+    "VERCEL_AI_GATEWAY_API_KEY",
+    os.getenv("AI_GATEWAY_API_KEY", ""),
+).strip()
+VERCEL_MODEL = os.getenv("VERCEL_MODEL", "google/gemini-2.5-flash-lite").strip()
+VERCEL_API_BASE = os.getenv("VERCEL_API_BASE", "https://ai-gateway.vercel.sh/v1").strip()
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip()
+GROQ_API_BASE = os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1").strip()
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434/api/chat").strip()
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2").strip()
@@ -265,6 +314,19 @@ class InsightsAnalyzeRequest(BaseModel):
     quickCheckins: list[InsightQuickCheckinItem] = Field(default_factory=list)
 
 
+class ProviderCallError(RuntimeError):
+    def __init__(self, provider: str, message: str):
+        super().__init__(message)
+        self.provider = provider
+        self.message = message
+
+
+class LLMUnavailableError(RuntimeError):
+    def __init__(self, attempts: list[str]):
+        super().__init__("All configured LLM providers failed.")
+        self.attempts = attempts
+
+
 @app.get("/health")
 def health() -> dict:
     model = get_suicide_model()
@@ -273,7 +335,9 @@ def health() -> dict:
     sentiment_model = get_sentiment_model()
     return {
         "status": "ok",
-        "provider": LLM_PROVIDER,
+        "provider": active_primary_provider(),
+        "configuredProvider": PRIMARY_LLM_PROVIDER,
+        "providerChain": LLM_PROVIDER_CHAIN,
         "model": active_llm_model(),
         "suicideModelLoaded": model is not None,
         "suicideModelPath": str(SUICIDE_MODEL_PATH),
@@ -304,7 +368,10 @@ def chat(payload: ChatRequest) -> dict:
     system_prompt = build_system_prompt(country_code)
     num_predict = choose_num_predict(user_message)
     llm_messages = [*history_messages, {"role": "user", "content": user_message}]
-    reply = call_llm(system_prompt, llm_messages, LLM_TEMPERATURE, num_predict)
+    try:
+        reply = call_llm(system_prompt, llm_messages, LLM_TEMPERATURE, num_predict)
+    except LLMUnavailableError:
+        reply = build_service_fallback_reply()
 
     reply = sanitize_conversational_reply(reply)
 
@@ -494,6 +561,13 @@ def build_safety_reply(country_code: str, risk_level: str = "high") -> str:
     )
 
 
+def build_service_fallback_reply() -> str:
+    return (
+        "I am here with you. Tell me in one short line how you are feeling right now, "
+        "and we can take it step by step together."
+    )
+
+
 def contains_us_hotline_reference(reply: str) -> bool:
     lowered = reply.lower()
     return any(pattern in lowered for pattern in US_HOTLINE_PATTERNS)
@@ -513,7 +587,23 @@ def sanitize_history(raw_history: list[dict[str, str]]) -> list[dict[str, str]]:
 
 
 def active_llm_model() -> str:
-    return GEMINI_MODEL if LLM_PROVIDER == "gemini" else OLLAMA_MODEL
+    return model_for_provider(active_primary_provider())
+
+
+def active_primary_provider() -> str:
+    return LLM_PROVIDER_CHAIN[0] if LLM_PROVIDER_CHAIN else "gemini"
+
+
+def model_for_provider(provider: str) -> str:
+    if provider == "gemini":
+        return GEMINI_MODEL
+    if provider == "vercel":
+        return VERCEL_MODEL
+    if provider == "groq":
+        return GROQ_MODEL
+    if provider == "ollama":
+        return OLLAMA_MODEL
+    return GEMINI_MODEL
 
 
 def to_gemini_contents(messages: list[dict[str, str]]) -> list[dict[str, object]]:
@@ -544,6 +634,32 @@ def normalize_gemini_model_name(model: str) -> str:
 def extract_model_text(data: object) -> str:
     if not isinstance(data, dict):
         return ""
+
+    choices = data.get("choices")
+    if isinstance(choices, list):
+        for choice in choices:
+            if not isinstance(choice, dict):
+                continue
+            message = choice.get("message")
+            if isinstance(message, dict):
+                content = message.get("content", "")
+                if isinstance(content, list):
+                    joined_parts: list[str] = []
+                    for item in content:
+                        if not isinstance(item, dict):
+                            continue
+                        piece = clean_text(item.get("text", ""))
+                        if piece:
+                            joined_parts.append(piece)
+                    if joined_parts:
+                        return "\n".join(joined_parts).strip()
+                else:
+                    parsed = clean_text(content)
+                    if parsed:
+                        return parsed
+            text_content = clean_text(choice.get("text", ""))
+            if text_content:
+                return text_content
 
     candidates = data.get("candidates")
     if isinstance(candidates, list):
@@ -601,6 +717,60 @@ def extract_llm_error(response: requests.Response) -> str:
     return clean_text(data) or "Unknown LLM error."
 
 
+def _openai_style_messages(system_prompt: str, messages: list[dict[str, str]]) -> list[dict[str, str]]:
+    return [{"role": "system", "content": system_prompt}, *messages]
+
+
+def call_openai_compatible_provider(
+    provider: str,
+    api_key: str,
+    api_base: str,
+    model: str,
+    system_prompt: str,
+    messages: list[dict[str, str]],
+    temperature: float,
+    num_predict: int,
+) -> str:
+    if not api_key:
+        raise ProviderCallError(provider, "API key is missing.")
+
+    url = f"{api_base.rstrip('/')}/chat/completions"
+    payload = {
+        "model": model,
+        "messages": _openai_style_messages(system_prompt, messages),
+        "temperature": temperature,
+        "max_tokens": num_predict,
+        "n": 1,
+        "stream": False,
+    }
+
+    try:
+        response = requests.post(
+            url,
+            json=payload,
+            timeout=LLM_TIMEOUT_SECONDS,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            },
+        )
+    except requests.RequestException as exc:
+        raise ProviderCallError(provider, f"Could not reach provider endpoint: {exc}") from exc
+
+    if response.status_code != 200:
+        raise ProviderCallError(provider, f"{provider} error ({response.status_code}): {extract_llm_error(response)}")
+
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise ProviderCallError(provider, f"{provider} returned invalid JSON.") from exc
+
+    reply = extract_model_text(data)
+    if not reply:
+        raise ProviderCallError(provider, f"{provider} returned an empty response.")
+    return reply
+
+
 def call_ollama(system_prompt: str, messages: list[dict[str, str]], temperature: float, num_predict: int) -> str:
     payload = {
         "model": OLLAMA_MODEL,
@@ -611,43 +781,30 @@ def call_ollama(system_prompt: str, messages: list[dict[str, str]], temperature:
             "repeat_penalty": OLLAMA_REPEAT_PENALTY,
             "num_predict": num_predict,
         },
-        "messages": [{"role": "system", "content": system_prompt}, *messages],
+        "messages": _openai_style_messages(system_prompt, messages),
     }
     try:
         response = requests.post(OLLAMA_URL, json=payload, timeout=LLM_TIMEOUT_SECONDS)
     except requests.RequestException as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Could not reach Ollama. Start Ollama first and ensure model '"
-                + OLLAMA_MODEL
-                + "' is available."
-            ),
-        ) from exc
+        raise ProviderCallError("ollama", f"Could not reach Ollama endpoint: {exc}") from exc
 
     if response.status_code != 200:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Ollama error ({response.status_code}): {extract_llm_error(response)}",
-        )
+        raise ProviderCallError("ollama", f"Ollama error ({response.status_code}): {extract_llm_error(response)}")
 
     try:
         data = response.json()
     except ValueError as exc:
-        raise HTTPException(status_code=502, detail="Ollama returned invalid JSON.") from exc
+        raise ProviderCallError("ollama", "Ollama returned invalid JSON.") from exc
 
     reply = extract_model_text(data)
     if not reply:
-        raise HTTPException(status_code=502, detail="Ollama returned an empty response.")
+        raise ProviderCallError("ollama", "Ollama returned an empty response.")
     return reply
 
 
 def call_gemini(system_prompt: str, messages: list[dict[str, str]], temperature: float, num_predict: int) -> str:
     if not GEMINI_API_KEY:
-        raise HTTPException(
-            status_code=503,
-            detail="Gemini API key is missing. Set GEMINI_API_KEY and retry.",
-        )
+        raise ProviderCallError("gemini", "API key is missing.")
 
     model_name = normalize_gemini_model_name(GEMINI_MODEL)
     api_base = GEMINI_API_BASE.rstrip("/")
@@ -673,32 +830,69 @@ def call_gemini(system_prompt: str, messages: list[dict[str, str]], temperature:
             },
         )
     except requests.RequestException as exc:
-        raise HTTPException(
-            status_code=503,
-            detail="Could not reach Gemini API. Check network access and GEMINI_API_KEY.",
-        ) from exc
+        raise ProviderCallError("gemini", f"Could not reach Gemini API: {exc}") from exc
 
     if response.status_code != 200:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Gemini error ({response.status_code}): {extract_llm_error(response)}",
-        )
+        raise ProviderCallError("gemini", f"Gemini error ({response.status_code}): {extract_llm_error(response)}")
 
     try:
         data = response.json()
     except ValueError as exc:
-        raise HTTPException(status_code=502, detail="Gemini returned invalid JSON.") from exc
+        raise ProviderCallError("gemini", "Gemini returned invalid JSON.") from exc
 
     reply = extract_model_text(data)
     if not reply:
-        raise HTTPException(status_code=502, detail="Gemini returned an empty response.")
+        raise ProviderCallError("gemini", "Gemini returned an empty response.")
     return reply
 
 
+def call_vercel(system_prompt: str, messages: list[dict[str, str]], temperature: float, num_predict: int) -> str:
+    return call_openai_compatible_provider(
+        provider="vercel",
+        api_key=VERCEL_AI_GATEWAY_API_KEY,
+        api_base=VERCEL_API_BASE,
+        model=VERCEL_MODEL,
+        system_prompt=system_prompt,
+        messages=messages,
+        temperature=temperature,
+        num_predict=num_predict,
+    )
+
+
+def call_groq(system_prompt: str, messages: list[dict[str, str]], temperature: float, num_predict: int) -> str:
+    return call_openai_compatible_provider(
+        provider="groq",
+        api_key=GROQ_API_KEY,
+        api_base=GROQ_API_BASE,
+        model=GROQ_MODEL,
+        system_prompt=system_prompt,
+        messages=messages,
+        temperature=temperature,
+        num_predict=num_predict,
+    )
+
+
 def call_llm(system_prompt: str, messages: list[dict[str, str]], temperature: float, num_predict: int) -> str:
-    if LLM_PROVIDER == "gemini":
-        return call_gemini(system_prompt, messages, temperature, num_predict)
-    return call_ollama(system_prompt, messages, temperature, num_predict)
+    callers: dict[str, Callable[[str, list[dict[str, str]], float, int], str]] = {
+        "gemini": call_gemini,
+        "vercel": call_vercel,
+        "groq": call_groq,
+        "ollama": call_ollama,
+    }
+    attempts: list[str] = []
+
+    for provider in LLM_PROVIDER_CHAIN:
+        caller = callers.get(provider)
+        if caller is None:
+            continue
+        try:
+            return caller(system_prompt, messages, temperature, num_predict)
+        except ProviderCallError as exc:
+            attempts.append(f"{provider}: {exc.message}")
+        except Exception as exc:
+            attempts.append(f"{provider}: {clean_text(exc) or 'unexpected error'}")
+
+    raise LLMUnavailableError(attempts)
 
 
 def sanitize_conversational_reply(reply: str) -> str:
@@ -1608,7 +1802,7 @@ def build_cosmic_summary(
         "dailyContext": final_context,
         "tomorrowVibe": tomorrow_vibe,
         "confidence": f"{combined['confidence']}%",
-        "source": f"hybrid-ml-{LLM_PROVIDER}-daily",
+        "source": f"hybrid-ml-{active_primary_provider()}-daily",
         "countryCode": country_code or "",
     }
 
